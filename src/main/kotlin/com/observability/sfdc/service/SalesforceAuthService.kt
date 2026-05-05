@@ -14,8 +14,7 @@ class SalesforceAuthService(
     @Value("\${salesforce.login-url}") private val loginUrl: String,
     @Value("\${salesforce.client-id}") private val clientId: String,
     @Value("\${salesforce.client-secret}") private val clientSecret: String,
-    @Value("\${salesforce.username}") private val username: String,
-    @Value("\${salesforce.password}") private val password: String
+    @Value("\${salesforce.grant-type}") private val grantType: String
 ) {
     private val restTemplate = RestTemplate()
 
@@ -26,11 +25,9 @@ class SalesforceAuthService(
         headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
 
         val map = LinkedMultiValueMap<String, String>()
-        map.add("grant_type", "password")
+        map.add("grant_type", grantType)
         map.add("client_id", clientId)
         map.add("client_secret", clientSecret)
-        map.add("username", username)
-        map.add("password", password)
 
         val request = HttpEntity(map, headers)
 
