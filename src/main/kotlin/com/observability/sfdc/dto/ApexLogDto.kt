@@ -8,8 +8,8 @@ data class ApexLogDto(
     @JsonProperty("Id")
     val id: String,
     
-    @JsonProperty("LogUserId")
-    val logUserId: String?,
+    @JsonProperty("LogUser")
+    val logUser: LogUserDto?,
     
     @JsonProperty("Operation")
     val operation: String?,
@@ -22,4 +22,10 @@ data class ApexLogDto(
     
     @JsonProperty("LogLength")
     val logLength: Long?
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class LogUserDto(
+    @JsonProperty("Name")
+    val name: String?
 )

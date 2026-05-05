@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository
 @Repository
 interface LogRepository : JpaRepository<Log, Long> {
     fun findByApexClassNameContainingIgnoreCase(apexClassName: String): List<Log>
-    fun findByAuthorContainingIgnoreCase(author: String): List<Log>
-    fun findByApexClassNameContainingIgnoreCaseAndAuthorContainingIgnoreCase(apexClassName: String, author: String): List<Log>
+    fun findByAuthorNameContainingIgnoreCase(authorName: String): List<Log>
+    fun findByApexClassNameContainingIgnoreCaseAndAuthorNameContainingIgnoreCase(apexClassName: String, authorName: String): List<Log>
 }

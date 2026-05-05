@@ -2,10 +2,7 @@ package com.observability.sfdc.controller
 
 import com.observability.sfdc.dto.ApexLogDto
 import com.observability.sfdc.service.SalesforceLogService
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/sfdc/logs")
@@ -14,8 +11,12 @@ class SalesforceLogController(
 ) {
 
     @GetMapping
-    fun getApexLogs(): List<ApexLogDto> {
-        return logService.queryApexLogs()
+    fun getApexLogs(
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(defaultValue = "0") page: Int
+    ): List<ApexLogDto> {
+        val offset = page * size
+        return logService.queryApexLogs(size, offset)
     }
 
     @GetMapping("/{id}/body")

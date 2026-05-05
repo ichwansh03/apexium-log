@@ -19,11 +19,11 @@ class SalesforceLogService(
 ) {
     private val restTemplate = RestTemplate()
 
-    fun queryApexLogs(): List<ApexLogDto> {
+    fun queryApexLogs(limit: Int = 10, offset: Int = 0): List<ApexLogDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, LogUserId, Operation, StartTime, Status, LogLength FROM ApexLog ORDER BY StartTime DESC LIMIT 10"
+        val query = "SELECT Id, LogUser.Name, Operation, StartTime, Status, LogLength FROM ApexLog ORDER BY StartTime DESC LIMIT $limit OFFSET $offset"
         
         val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)

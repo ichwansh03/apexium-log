@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 data class LogDto(
     val id: Long? = null,
     val apexClassName: String? = null,
-    val author: String? = null,
+    val authorName: String? = null,
     val requestTime: LocalDateTime? = null,
     val operation: String? = null,
     val logSize: Long? = null,

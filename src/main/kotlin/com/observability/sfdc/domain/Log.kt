@@ -13,8 +13,8 @@ data class Log(
     @Column(name = "apex_class_name")
     val apexClassName: String? = null,
 
-    @Column(name = "author")
-    val author: String? = null,
+    @Column(name = "author_name")
+    val authorName: String? = null,
 
     @Column(name = "request_time")
     val requestTime: LocalDateTime? = null,
