@@ -21,7 +21,9 @@ data class ApexLogDto(
     val status: String?,
     
     @JsonProperty("LogLength")
-    val logLength: Long?
+    val logLength: Long?,
+
+    val apexClassName: String? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

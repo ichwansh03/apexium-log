@@ -42,11 +42,34 @@ class SalesforceLogService(
                 entity,
                 object : ParameterizedTypeReference<SalesforceQueryResult<ApexLogDto>>() {}
             )
-            response.body?.records ?: emptyList()
+            val records = response.body?.records ?: emptyList()
+            
+            // Enrich records with Apex Class Name by fetching bodies
+            records.map { dto ->
+                val body = getLogBody(dto.id)
+                dto.copy(apexClassName = extractClassName(body))
+            }
         } catch (e: Exception) {
             println("Error querying ApexLogs: ${e.message}")
             emptyList()
         }
+    }
+
+    private fun extractClassName(body: String?): String? {
+        if (body == null) return null
+
+        // Pattern 1: CODE_UNIT_STARTED for triggers and other units
+        // Example: |CODE_UNIT_STARTED|[EXTERNAL]|01q...|LogEventTrigger on AppLog__ChangeEvent...
+        val triggerRegex = Regex("\\|CODE_UNIT_STARTED\\|\\[[^]]*]\\|[^|]*\\|([^\\s]+)(?:\\son|\\strigger)")
+        val triggerMatch = triggerRegex.find(body)
+        if (triggerMatch != null) return triggerMatch.groupValues[1]
+
+        // Pattern 2: METHOD_ENTRY or CLASS_ENTRY for standard Apex classes
+        // Example: |METHOD_ENTRY|[5]|01p...|MyController.doSomething()
+        val classRegex = Regex("\\|(?:METHOD_ENTRY|CLASS_ENTRY)\\|\\[[^]]*]\\|(?:[^|]*\\|)?([^.| \\n]+)")
+        val classMatch = classRegex.find(body)
+
+        return classMatch?.groupValues?.get(1)
     }
 
     fun getLogBody(logId: String): String? {
