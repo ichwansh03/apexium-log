@@ -29,5 +29,8 @@ data class Log(
     val duration: Long? = null,
 
     @Column(name = "status")
-    val status: String? = null
+    val status: String? = null,
+
+    @Column(name = "request")
+    val request: String? = null
 )

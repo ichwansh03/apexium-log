@@ -23,7 +23,7 @@ class SalesforceLogService(
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, LogUser.Name, Operation, StartTime, Status, LogLength FROM ApexLog ORDER BY StartTime DESC LIMIT $limit OFFSET $offset"
+        val query = "SELECT Id, LogUser.Name, Operation, StartTime, Status, Request, LogLength FROM ApexLog ORDER BY StartTime DESC LIMIT $limit OFFSET $offset"
         
         val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
@@ -60,7 +60,7 @@ class SalesforceLogService(
 
         // Pattern 1: CODE_UNIT_STARTED for triggers and other units
         // Example: |CODE_UNIT_STARTED|[EXTERNAL]|01q...|LogEventTrigger on AppLog__ChangeEvent...
-        val triggerRegex = Regex("\\|CODE_UNIT_STARTED\\|\\[[^]]*]\\|[^|]*\\|([^\\s]+)(?:\\son|\\strigger)")
+        val triggerRegex = Regex("\\|CODE_UNIT_STARTED\\|\\[[^]]*]\\|[^|]*\\|(\\S+)(?:\\son|\\strigger)")
         val triggerMatch = triggerRegex.find(body)
         if (triggerMatch != null) return triggerMatch.groupValues[1]
 

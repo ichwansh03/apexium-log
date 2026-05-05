@@ -16,9 +16,12 @@ data class ApexLogDto(
     
     @JsonProperty("StartTime")
     val startTime: String?,
-    
+
     @JsonProperty("Status")
     val status: String?,
+
+    @JsonProperty("Request")
+    val request: String?,
     
     @JsonProperty("LogLength")
     val logLength: Long?,
