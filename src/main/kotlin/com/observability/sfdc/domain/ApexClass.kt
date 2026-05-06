@@ -15,5 +15,9 @@ data class ApexClass(
     val name: String?,
     val apiVersion: Double?,
     val status: String?,
-    val lastModifiedDate: String?
+    val lengthWithoutComments: Int?,
+    val lastModifiedDate: String?,
+    val lastModifiedByName: String?,
+    val createdDate: String?,
+    val createdByName: String?
 )

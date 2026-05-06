@@ -30,7 +30,7 @@ class SalesforceMetadataService(
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, Name, ApiVersion, Status, LastModifiedDate FROM ApexClass ORDER BY Name ASC LIMIT $limit OFFSET $offset"
+        val query = "SELECT Id, Name, ApiVersion, Status, LengthWithoutComments, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexClass WHERE Status = 'Active' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
@@ -62,7 +62,7 @@ class SalesforceMetadataService(
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, LastModifiedDate FROM ApexTrigger ORDER BY Name ASC LIMIT $limit OFFSET $offset"
+        val query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexTrigger WHERE Status = 'Active' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
@@ -98,7 +98,11 @@ class SalesforceMetadataService(
                     name = dto.name,
                     apiVersion = dto.apiVersion,
                     status = dto.status,
-                    lastModifiedDate = dto.lastModifiedDate
+                    lengthWithoutComments = dto.lengthWithoutComments,
+                    lastModifiedDate = dto.lastModifiedDate,
+                    lastModifiedByName = dto.lastModifiedBy?.name,
+                    createdDate = dto.createdDate,
+                    createdByName = dto.createdBy?.name
                 )
             } else {
                 ApexClass(
@@ -106,7 +110,11 @@ class SalesforceMetadataService(
                     name = dto.name,
                     apiVersion = dto.apiVersion,
                     status = dto.status,
-                    lastModifiedDate = dto.lastModifiedDate
+                    lengthWithoutComments = dto.lengthWithoutComments,
+                    lastModifiedDate = dto.lastModifiedDate,
+                    lastModifiedByName = dto.lastModifiedBy?.name,
+                    createdDate = dto.createdDate,
+                    createdByName = dto.createdBy?.name
                 )
             }
             classRepository.save(apexClass)
@@ -122,7 +130,16 @@ class SalesforceMetadataService(
                     tableEnumOrId = dto.tableEnumOrId,
                     apiVersion = dto.apiVersion,
                     status = dto.status,
-                    lastModifiedDate = dto.lastModifiedDate
+                    usageBeforeInsert = dto.usageBeforeInsert,
+                    usageBeforeUpdate = dto.usageBeforeUpdate,
+                    usageBeforeDelete = dto.usageBeforeDelete,
+                    usageAfterInsert = dto.usageAfterInsert,
+                    usageAfterUpdate = dto.usageAfterUpdate,
+                    usageAfterDelete = dto.usageAfterDelete,
+                    lastModifiedDate = dto.lastModifiedDate,
+                    lastModifiedByName = dto.lastModifiedBy?.name,
+                    createdDate = dto.createdDate,
+                    createdByName = dto.createdBy?.name
                 )
             } else {
                 ApexTrigger(
@@ -131,7 +148,16 @@ class SalesforceMetadataService(
                     tableEnumOrId = dto.tableEnumOrId,
                     apiVersion = dto.apiVersion,
                     status = dto.status,
-                    lastModifiedDate = dto.lastModifiedDate
+                    usageBeforeInsert = dto.usageBeforeInsert,
+                    usageBeforeUpdate = dto.usageBeforeUpdate,
+                    usageBeforeDelete = dto.usageBeforeDelete,
+                    usageAfterInsert = dto.usageAfterInsert,
+                    usageAfterUpdate = dto.usageAfterUpdate,
+                    usageAfterDelete = dto.usageAfterDelete,
+                    lastModifiedDate = dto.lastModifiedDate,
+                    lastModifiedByName = dto.lastModifiedBy?.name,
+                    createdDate = dto.createdDate,
+                    createdByName = dto.createdBy?.name
                 )
             }
             triggerRepository.save(trigger)

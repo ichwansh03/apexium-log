@@ -19,7 +19,34 @@ data class ApexTriggerDto(
     
     @JsonProperty("Status")
     val status: String?,
+
+    @JsonProperty("UsageBeforeInsert")
+    val usageBeforeInsert: Boolean?,
+
+    @JsonProperty("UsageBeforeUpdate")
+    val usageBeforeUpdate: Boolean?,
+
+    @JsonProperty("UsageBeforeDelete")
+    val usageBeforeDelete: Boolean?,
+
+    @JsonProperty("UsageAfterInsert")
+    val usageAfterInsert: Boolean?,
+
+    @JsonProperty("UsageAfterUpdate")
+    val usageAfterUpdate: Boolean?,
+
+    @JsonProperty("UsageAfterDelete")
+    val usageAfterDelete: Boolean?,
     
     @JsonProperty("LastModifiedDate")
-    val lastModifiedDate: String?
+    val lastModifiedDate: String?,
+
+    @JsonProperty("LastModifiedBy")
+    val lastModifiedBy: UserSummaryDto?,
+
+    @JsonProperty("CreatedDate")
+    val createdDate: String?,
+
+    @JsonProperty("CreatedBy")
+    val createdBy: UserSummaryDto?
 )

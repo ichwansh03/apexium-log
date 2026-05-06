@@ -16,7 +16,19 @@ data class ApexClassDto(
     
     @JsonProperty("Status")
     val status: String?,
+
+    @JsonProperty("LengthWithoutComments")
+    val lengthWithoutComments: Int?,
     
     @JsonProperty("LastModifiedDate")
-    val lastModifiedDate: String?
+    val lastModifiedDate: String?,
+
+    @JsonProperty("LastModifiedBy")
+    val lastModifiedBy: UserSummaryDto?,
+
+    @JsonProperty("CreatedDate")
+    val createdDate: String?,
+
+    @JsonProperty("CreatedBy")
+    val createdBy: UserSummaryDto?
 )

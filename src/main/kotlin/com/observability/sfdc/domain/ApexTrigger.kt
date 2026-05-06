@@ -16,5 +16,14 @@ data class ApexTrigger(
     val tableEnumOrId: String?,
     val apiVersion: Double?,
     val status: String?,
-    val lastModifiedDate: String?
+    val usageBeforeInsert: Boolean?,
+    val usageBeforeUpdate: Boolean?,
+    val usageBeforeDelete: Boolean?,
+    val usageAfterInsert: Boolean?,
+    val usageAfterUpdate: Boolean?,
+    val usageAfterDelete: Boolean?,
+    val lastModifiedDate: String?,
+    val lastModifiedByName: String?,
+    val createdDate: String?,
+    val createdByName: String?
 )
