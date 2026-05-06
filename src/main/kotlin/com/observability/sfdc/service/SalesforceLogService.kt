@@ -2,12 +2,11 @@ package com.observability.sfdc.service
 
 import com.observability.sfdc.dto.ApexLogDto
 import com.observability.sfdc.dto.SalesforceQueryResult
+import com.observability.sfdc.dto.TraceFlagRequest
+import com.observability.sfdc.dto.SalesforceCreateResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.ParameterizedTypeReference
-import org.springframework.http.HttpEntity
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
-import org.springframework.http.ResponseEntity
+import org.springframework.http.*
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.util.UriComponentsBuilder
@@ -94,6 +93,26 @@ class SalesforceLogService(
         } catch (e: Exception) {
             println("Error fetching log body for $logId: ${e.message}")
             null
+        }
+    }
+
+    fun createTraceFlag(request: TraceFlagRequest): SalesforceCreateResponse? {
+        val tokenResponse = authService.getAccessToken() ?: return null
+        
+        val baseUrl = tokenResponse.instanceUrl
+        val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag"
+
+        val headers = HttpHeaders()
+        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.contentType = MediaType.APPLICATION_JSON
+        
+        val entity = HttpEntity<TraceFlagRequest>(request, headers)
+        
+        return try {
+            restTemplate.postForObject(url, entity, SalesforceCreateResponse::class.java)
+        } catch (e: Exception) {
+            println("Error creating TraceFlag: ${e.message}")
+            SalesforceCreateResponse(id = null, success = false, errors = listOf(e.message ?: "Unknown error"))
         }
     }
 }
