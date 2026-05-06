@@ -3,10 +3,13 @@ package com.observability.sfdc.service
 import com.observability.sfdc.dto.SalesforceQueryResult
 import com.observability.sfdc.dto.ApexClassDto
 import com.observability.sfdc.dto.ApexTriggerDto
+import com.observability.sfdc.dto.DebugLevelDto
 import com.observability.sfdc.repository.ApexClassRepository
 import com.observability.sfdc.repository.ApexTriggerRepository
+import com.observability.sfdc.repository.DebugLevelRepository
 import com.observability.sfdc.domain.ApexClass
 import com.observability.sfdc.domain.ApexTrigger
+import com.observability.sfdc.domain.DebugLevel
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpEntity
@@ -22,9 +25,77 @@ class SalesforceMetadataService(
     private val authService: SalesforceAuthService,
     private val classRepository: ApexClassRepository,
     private val triggerRepository: ApexTriggerRepository,
+    private val debugLevelRepository: DebugLevelRepository,
     @Value("\${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
+
+    fun getAllDebugLevels(limit: Int = 10, offset: Int = 0): List<DebugLevelDto> {
+        val tokenResponse = authService.getAccessToken() ?: return emptyList()
+        
+        val baseUrl = tokenResponse.instanceUrl
+        val query = "SELECT Id, DeveloperName, MasterLabel, ApexCode, ApexProfiling, Callout, Database, System, Validation, Visualforce, Workflow FROM DebugLevel LIMIT $limit OFFSET $offset"
+        
+        val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
+            .queryParam("q", query)
+            .build()
+            .toUriString()
+
+        val headers = HttpHeaders()
+        headers.setBearerAuth(tokenResponse.accessToken)
+        
+        val entity = HttpEntity<Unit>(headers)
+        
+        return try {
+            val response: ResponseEntity<SalesforceQueryResult<DebugLevelDto>> = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                object : ParameterizedTypeReference<SalesforceQueryResult<DebugLevelDto>>() {}
+            )
+            val records = response.body?.records ?: emptyList()
+            syncDebugLevelsToDatabase(records)
+            records
+        } catch (e: Exception) {
+            println("Error querying DebugLevels: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun syncDebugLevelsToDatabase(dtos: List<DebugLevelDto>) {
+        dtos.forEach { dto ->
+            val existing = debugLevelRepository.findBySfdcId(dto.id)
+            val debugLevel = if (existing.isPresent) {
+                existing.get().copy(
+                    developerName = dto.developerName,
+                    masterLabel = dto.masterLabel,
+                    apexCode = dto.apexCode,
+                    apexProfiling = dto.apexProfiling,
+                    callout = dto.callout,
+                    database = dto.database,
+                    system = dto.system,
+                    validation = dto.validation,
+                    visualforce = dto.visualforce,
+                    workflow = dto.workflow
+                )
+            } else {
+                DebugLevel(
+                    sfdcId = dto.id,
+                    developerName = dto.developerName,
+                    masterLabel = dto.masterLabel,
+                    apexCode = dto.apexCode,
+                    apexProfiling = dto.apexProfiling,
+                    callout = dto.callout,
+                    database = dto.database,
+                    system = dto.system,
+                    validation = dto.validation,
+                    visualforce = dto.visualforce,
+                    workflow = dto.workflow
+                )
+            }
+            debugLevelRepository.save(debugLevel)
+        }
+    }
 
     fun getAllApexClasses(limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
