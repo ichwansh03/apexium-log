@@ -3,8 +3,8 @@ package com.observability.sfdc.domain
 import jakarta.persistence.*
 
 @Entity
-@Table(name = "sfdc_apex_classes")
-data class SfdcApexClass(
+@Table(name = "apex_classes")
+data class ApexClass(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,

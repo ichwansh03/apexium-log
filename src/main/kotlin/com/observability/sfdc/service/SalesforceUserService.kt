@@ -2,8 +2,8 @@ package com.observability.sfdc.service
 
 import com.observability.sfdc.dto.SalesforceQueryResult
 import com.observability.sfdc.dto.SalesforceUserDto
-import com.observability.sfdc.repository.SfdcUserRepository
-import com.observability.sfdc.domain.SfdcUser
+import com.observability.sfdc.repository.UserRepository
+import com.observability.sfdc.domain.User
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpEntity
@@ -17,7 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder
 @Service
 class SalesforceUserService(
     private val authService: SalesforceAuthService,
-    private val userRepository: SfdcUserRepository,
+    private val userRepository: UserRepository,
     @Value("\${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
@@ -70,7 +70,7 @@ class SalesforceUserService(
                     entity = dto.entity
                 )
             } else {
-                SfdcUser(
+                User(
                     sfdcId = dto.id,
                     name = dto.name,
                     username = dto.username,

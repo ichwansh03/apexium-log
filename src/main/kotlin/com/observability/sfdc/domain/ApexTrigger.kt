@@ -3,8 +3,8 @@ package com.observability.sfdc.domain
 import jakarta.persistence.*
 
 @Entity
-@Table(name = "sfdc_users")
-data class SfdcUser(
+@Table(name = "apex_triggers")
+data class ApexTrigger(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -13,9 +13,8 @@ data class SfdcUser(
     val sfdcId: String,
 
     val name: String?,
-    val username: String?,
-    val email: String?,
-    val profileName: String?,
-    val isActive: Boolean?,
-    val entity: String?
+    val tableEnumOrId: String?,
+    val apiVersion: Double?,
+    val status: String?,
+    val lastModifiedDate: String?
 )

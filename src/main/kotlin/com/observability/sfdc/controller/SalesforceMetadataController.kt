@@ -1,7 +1,7 @@
 package com.observability.sfdc.controller
 
-import com.observability.sfdc.dto.SalesforceApexClassDto
-import com.observability.sfdc.dto.SalesforceApexTriggerDto
+import com.observability.sfdc.dto.ApexClassDto
+import com.observability.sfdc.dto.ApexTriggerDto
 import com.observability.sfdc.service.SalesforceMetadataService
 import org.springframework.web.bind.annotation.*
 
@@ -15,7 +15,7 @@ class SalesforceMetadataController(
     fun getApexClasses(
         @RequestParam(defaultValue = "10") size: Int,
         @RequestParam(defaultValue = "0") page: Int
-    ): List<SalesforceApexClassDto> {
+    ): List<ApexClassDto> {
         val offset = page * size
         return metadataService.getAllApexClasses(size, offset)
     }
@@ -24,7 +24,7 @@ class SalesforceMetadataController(
     fun getApexTriggers(
         @RequestParam(defaultValue = "10") size: Int,
         @RequestParam(defaultValue = "0") page: Int
-    ): List<SalesforceApexTriggerDto> {
+    ): List<ApexTriggerDto> {
         val offset = page * size
         return metadataService.getAllApexTriggers(size, offset)
     }

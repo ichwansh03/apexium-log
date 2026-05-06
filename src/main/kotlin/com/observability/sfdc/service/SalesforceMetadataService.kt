@@ -1,12 +1,12 @@
 package com.observability.sfdc.service
 
 import com.observability.sfdc.dto.SalesforceQueryResult
-import com.observability.sfdc.dto.SalesforceApexClassDto
-import com.observability.sfdc.dto.SalesforceApexTriggerDto
-import com.observability.sfdc.repository.SfdcApexClassRepository
-import com.observability.sfdc.repository.SfdcApexTriggerRepository
-import com.observability.sfdc.domain.SfdcApexClass
-import com.observability.sfdc.domain.SfdcApexTrigger
+import com.observability.sfdc.dto.ApexClassDto
+import com.observability.sfdc.dto.ApexTriggerDto
+import com.observability.sfdc.repository.ApexClassRepository
+import com.observability.sfdc.repository.ApexTriggerRepository
+import com.observability.sfdc.domain.ApexClass
+import com.observability.sfdc.domain.ApexTrigger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpEntity
@@ -20,13 +20,13 @@ import org.springframework.web.util.UriComponentsBuilder
 @Service
 class SalesforceMetadataService(
     private val authService: SalesforceAuthService,
-    private val classRepository: SfdcApexClassRepository,
-    private val triggerRepository: SfdcApexTriggerRepository,
+    private val classRepository: ApexClassRepository,
+    private val triggerRepository: ApexTriggerRepository,
     @Value("\${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
 
-    fun getAllApexClasses(limit: Int = 10, offset: Int = 0): List<SalesforceApexClassDto> {
+    fun getAllApexClasses(limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
@@ -43,11 +43,11 @@ class SalesforceMetadataService(
         val entity = HttpEntity<Unit>(headers)
         
         return try {
-            val response: ResponseEntity<SalesforceQueryResult<SalesforceApexClassDto>> = restTemplate.exchange(
+            val response: ResponseEntity<SalesforceQueryResult<ApexClassDto>> = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
-                object : ParameterizedTypeReference<SalesforceQueryResult<SalesforceApexClassDto>>() {}
+                object : ParameterizedTypeReference<SalesforceQueryResult<ApexClassDto>>() {}
             )
             val records = response.body?.records ?: emptyList()
             syncClassesToDatabase(records)
@@ -58,7 +58,7 @@ class SalesforceMetadataService(
         }
     }
 
-    fun getAllApexTriggers(limit: Int = 10, offset: Int = 0): List<SalesforceApexTriggerDto> {
+    fun getAllApexTriggers(limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
@@ -75,11 +75,11 @@ class SalesforceMetadataService(
         val entity = HttpEntity<Unit>(headers)
         
         return try {
-            val response: ResponseEntity<SalesforceQueryResult<SalesforceApexTriggerDto>> = restTemplate.exchange(
+            val response: ResponseEntity<SalesforceQueryResult<ApexTriggerDto>> = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
-                object : ParameterizedTypeReference<SalesforceQueryResult<SalesforceApexTriggerDto>>() {}
+                object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {}
             )
             val records = response.body?.records ?: emptyList()
             syncTriggersToDatabase(records)
@@ -90,7 +90,7 @@ class SalesforceMetadataService(
         }
     }
 
-    private fun syncClassesToDatabase(dtos: List<SalesforceApexClassDto>) {
+    private fun syncClassesToDatabase(dtos: List<ApexClassDto>) {
         dtos.forEach { dto ->
             val existing = classRepository.findBySfdcId(dto.id)
             val apexClass = if (existing.isPresent) {
@@ -101,7 +101,7 @@ class SalesforceMetadataService(
                     lastModifiedDate = dto.lastModifiedDate
                 )
             } else {
-                SfdcApexClass(
+                ApexClass(
                     sfdcId = dto.id,
                     name = dto.name,
                     apiVersion = dto.apiVersion,
@@ -113,7 +113,7 @@ class SalesforceMetadataService(
         }
     }
 
-    private fun syncTriggersToDatabase(dtos: List<SalesforceApexTriggerDto>) {
+    private fun syncTriggersToDatabase(dtos: List<ApexTriggerDto>) {
         dtos.forEach { dto ->
             val existing = triggerRepository.findBySfdcId(dto.id)
             val trigger = if (existing.isPresent) {
@@ -125,7 +125,7 @@ class SalesforceMetadataService(
                     lastModifiedDate = dto.lastModifiedDate
                 )
             } else {
-                SfdcApexTrigger(
+                ApexTrigger(
                     sfdcId = dto.id,
                     name = dto.name,
                     tableEnumOrId = dto.tableEnumOrId,
