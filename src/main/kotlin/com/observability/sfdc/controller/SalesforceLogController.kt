@@ -25,8 +25,19 @@ class SalesforceLogController(
     }
 
     @GetMapping("/db")
-    fun getDbLogs(): List<Log> {
-        return logRepository.findAllByOrderByRequestTimeDesc()
+    fun getDbLogs(
+        @RequestParam(required = false) className: String?,
+        @RequestParam(required = false) author: String?
+    ): List<Log> {
+        return when {
+            !className.isNullOrBlank() && !author.isNullOrBlank() ->
+                logRepository.findByApexClassNameContainingIgnoreCaseAndAuthorNameContainingIgnoreCase(className, author)
+            !className.isNullOrBlank() ->
+                logRepository.findByApexClassNameContainingIgnoreCase(className)
+            !author.isNullOrBlank() ->
+                logRepository.findByAuthorNameContainingIgnoreCase(author)
+            else -> logRepository.findAllByOrderByRequestTimeDesc()
+        }
     }
 
     @GetMapping("/{id}/body")
