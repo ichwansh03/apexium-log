@@ -10,6 +10,9 @@ data class Log(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
 
+    @Column(name = "sfdc_id", unique = true)
+    val sfdcId: String,
+
     @Column(name = "apex_class_name")
     val apexClassName: String? = null,
 

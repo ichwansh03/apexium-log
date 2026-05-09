@@ -22,7 +22,7 @@ class SalesforceLogService(
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, LogUser.Name, Operation, StartTime, Status, Request, LogLength FROM ApexLog ORDER BY StartTime DESC LIMIT $limit OFFSET $offset"
+        val query = "SELECT Id, LogUser.Name, Operation, StartTime, Status, Request, LogLength, DurationMilliseconds FROM ApexLog ORDER BY StartTime DESC LIMIT $limit OFFSET $offset"
         
         val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)

@@ -26,5 +26,8 @@ data class ApexLogDto(
     @JsonProperty("LogLength")
     val logLength: Long?,
 
+    @JsonProperty("DurationMilliseconds")
+    val durationMilliseconds: Long?,
+
     val apexClassName: String? = null
 )
