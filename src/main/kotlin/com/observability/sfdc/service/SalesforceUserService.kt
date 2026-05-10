@@ -5,6 +5,7 @@ import com.observability.sfdc.dto.SalesforceUserDto
 import com.observability.sfdc.repository.UserRepository
 import com.observability.sfdc.domain.User
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -22,6 +23,7 @@ class SalesforceUserService(
 ) {
     private val restTemplate = RestTemplate()
 
+    @Cacheable(value = ["sf_users"], key = "'all_users_' + #limit + '_' + #offset", unless = "#result == null")
     fun getAllUsers(limit: Int = 10, offset: Int = 0): List<SalesforceUserDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         

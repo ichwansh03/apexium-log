@@ -2,6 +2,7 @@ package com.observability.sfdc.service
 
 import com.observability.sfdc.dto.SalesforceTokenResponse
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -18,6 +19,7 @@ class SalesforceAuthService(
 ) {
     private val restTemplate = RestTemplate()
 
+    @Cacheable(value = ["sf_tokens"], key = "'client_credentials_token'", unless = "#result == null")
     fun getAccessToken(): SalesforceTokenResponse? {
         val url = "$loginUrl/services/oauth2/token"
         

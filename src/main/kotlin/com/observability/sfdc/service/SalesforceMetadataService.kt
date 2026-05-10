@@ -11,6 +11,7 @@ import com.observability.sfdc.domain.ApexClass
 import com.observability.sfdc.domain.ApexTrigger
 import com.observability.sfdc.domain.DebugLevel
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -30,6 +31,7 @@ class SalesforceMetadataService(
 ) {
     private val restTemplate = RestTemplate()
 
+    @Cacheable(value = ["sf_metadata"], key = "'debug_levels_' + #limit + '_' + #offset", unless = "#result == null")
     fun getAllDebugLevels(limit: Int = 10, offset: Int = 0): List<DebugLevelDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
@@ -97,6 +99,7 @@ class SalesforceMetadataService(
         }
     }
 
+    @Cacheable(value = ["sf_metadata"], key = "'apex_classes_' + #limit + '_' + #offset", unless = "#result == null")
     fun getAllApexClasses(limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
@@ -129,6 +132,7 @@ class SalesforceMetadataService(
         }
     }
 
+    @Cacheable(value = ["sf_metadata"], key = "'apex_triggers_' + #limit + '_' + #offset", unless = "#result == null")
     fun getAllApexTriggers(limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         

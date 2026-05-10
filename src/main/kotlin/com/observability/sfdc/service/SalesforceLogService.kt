@@ -5,6 +5,7 @@ import com.observability.sfdc.dto.SalesforceQueryResult
 import com.observability.sfdc.dto.TraceFlagRequest
 import com.observability.sfdc.dto.SalesforceCreateResponse
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.*
 import org.springframework.stereotype.Service
@@ -71,6 +72,7 @@ class SalesforceLogService(
         return classMatch?.groupValues?.get(1)
     }
 
+    @Cacheable(value = ["sf_logs_body"], key = "#logId", unless = "#result == null")
     fun getLogBody(logId: String): String? {
         val tokenResponse = authService.getAccessToken() ?: return null
         
