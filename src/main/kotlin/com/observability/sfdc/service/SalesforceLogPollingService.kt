@@ -19,32 +19,37 @@ class SalesforceLogPollingService(
 
     @Scheduled(fixedRate = 60000)
     fun pollLogs() {
-        logger.info("Polling Salesforce logs...")
-        val logs = logService.queryApexLogs(limit = 20)
-        
-        var newLogsCount = 0
-        logs.forEach { dto ->
-            if (!logRepository.findBySfdcId(dto.id).isPresent) {
-                val log = Log(
-                    sfdcId = dto.id,
-                    apexClassName = dto.apexClassName,
-                    authorName = dto.logUser?.name,
-                    requestTime = parseDateTime(dto.startTime),
-                    operation = dto.operation,
-                    logSize = dto.logLength,
-                    duration = dto.durationMilliseconds,
-                    status = dto.status,
-                    request = dto.request
-                )
-                logRepository.save(log)
-                newLogsCount++
+        logger.info("Starting Salesforce log polling cycle...")
+        try {
+            val logs = logService.queryApexLogs(limit = 20)
+            logger.info("Retrieved ${logs.size} logs from Salesforce Tooling API.")
+            
+            var newLogsCount = 0
+            logs.forEach { dto ->
+                if (!logRepository.findBySfdcId(dto.id).isPresent) {
+                    val log = Log(
+                        sfdcId = dto.id,
+                        apexClassName = dto.apexClassName,
+                        authorName = dto.logUser?.name,
+                        requestTime = parseDateTime(dto.startTime),
+                        operation = dto.operation,
+                        logSize = dto.logLength,
+                        duration = dto.durationMilliseconds,
+                        status = dto.status,
+                        request = dto.request
+                    )
+                    logRepository.save(log)
+                    newLogsCount++
+                }
             }
-        }
-        
-        if (newLogsCount > 0) {
-            logger.info("Saved $newLogsCount new logs to the database.")
-        } else {
-            logger.info("No new logs found.")
+            
+            if (newLogsCount > 0) {
+                logger.info("Success: Saved $newLogsCount new logs to PostgreSQL database.")
+            } else {
+                logger.info("Poll complete: No new logs found to save.")
+            }
+        } catch (e: Exception) {
+            logger.error("Critical error during Salesforce log polling: ${e.message}", e)
         }
     }
 

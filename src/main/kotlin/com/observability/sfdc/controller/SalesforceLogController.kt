@@ -1,9 +1,7 @@
 package com.observability.sfdc.controller
 
 import com.observability.sfdc.domain.Log
-import com.observability.sfdc.dto.ApexLogDto
-import com.observability.sfdc.dto.SalesforceCreateResponse
-import com.observability.sfdc.dto.TraceFlagRequest
+import com.observability.sfdc.dto.*
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.SalesforceLogService
 import org.springframework.web.bind.annotation.*
@@ -46,7 +44,7 @@ class SalesforceLogController(
     }
 
     @PostMapping("/trace-flags")
-    fun createTraceFlag(@RequestBody request: TraceFlagRequest): SalesforceCreateResponse? {
+    fun createTraceFlag(@RequestBody request: FrontendTraceFlagRequest): SalesforceCreateResponse? {
         return logService.createTraceFlag(request)
     }
 }

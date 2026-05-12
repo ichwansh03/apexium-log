@@ -1,9 +1,7 @@
 package com.observability.sfdc.service
 
-import com.observability.sfdc.dto.ApexLogDto
-import com.observability.sfdc.dto.SalesforceQueryResult
-import com.observability.sfdc.dto.TraceFlagRequest
-import com.observability.sfdc.dto.SalesforceCreateResponse
+import com.observability.sfdc.dto.*
+import com.observability.sfdc.repository.DebugLevelRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
@@ -11,13 +9,18 @@ import org.springframework.http.*
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.util.UriComponentsBuilder
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 @Service
 class SalesforceLogService(
     private val authService: SalesforceAuthService,
+    private val debugLevelRepository: DebugLevelRepository,
     @Value("\${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
+    private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
     fun queryApexLogs(limit: Int = 10, offset: Int = 0): List<ApexLogDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
@@ -98,9 +101,24 @@ class SalesforceLogService(
         }
     }
 
-    fun createTraceFlag(request: TraceFlagRequest): SalesforceCreateResponse? {
-        val tokenResponse = authService.getAccessToken() ?: return null
+    fun createTraceFlag(frontendRequest: FrontendTraceFlagRequest): SalesforceCreateResponse? {
+        val tokenResponse = authService.getAccessToken() ?: return SalesforceCreateResponse(id = null, success = false, errors = listOf("Authentication failed"))
         
+        // Resolve DebugLevel ID
+        val debugLevels = debugLevelRepository.findAll()
+        val debugLevel = debugLevels.find { it.developerName == frontendRequest.debugLevelName || it.masterLabel == frontendRequest.debugLevelName }
+            ?: return SalesforceCreateResponse(id = null, success = false, errors = listOf("DebugLevel '${frontendRequest.debugLevelName}' not found. Please sync metadata first."))
+
+        val expirationDate = ZonedDateTime.now(ZoneId.of("UTC"))
+            .plusMinutes(frontendRequest.durationMinutes.toLong())
+            .format(sfdcFormatter)
+
+        val sfdcRequest = TraceFlagRequest(
+            tracedEntityId = frontendRequest.tracedEntityId,
+            debugLevelId = debugLevel.sfdcId,
+            expirationDate = expirationDate
+        )
+
         val baseUrl = tokenResponse.instanceUrl
         val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag"
 
@@ -108,7 +126,7 @@ class SalesforceLogService(
         headers.setBearerAuth(tokenResponse.accessToken)
         headers.contentType = MediaType.APPLICATION_JSON
         
-        val entity = HttpEntity<TraceFlagRequest>(request, headers)
+        val entity = HttpEntity<TraceFlagRequest>(sfdcRequest, headers)
         
         return try {
             restTemplate.postForObject(url, entity, SalesforceCreateResponse::class.java)
