@@ -1,6 +1,7 @@
 package com.observability.sfdc.service
 
 import com.observability.sfdc.dto.SalesforceTokenResponse
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpEntity
@@ -18,11 +19,21 @@ class SalesforceAuthService(
     @Value("\${salesforce.grant-type}") private val grantType: String
 ) {
     private val restTemplate = RestTemplate()
+    private val logger = LoggerFactory.getLogger(SalesforceAuthService::class.java)
 
     @Cacheable(value = ["sf_tokens"], key = "'client_credentials_token'", unless = "#result == null")
     fun getAccessToken(): SalesforceTokenResponse? {
         val url = "$loginUrl/services/oauth2/token"
         
+        logger.info("Attempting Salesforce authentication at: $url")
+        logger.info("Using Grant Type: $grantType")
+        
+        if (clientId.isBlank()) {
+            logger.error("SALESFORCE_CLIENT_ID is blank or missing!")
+        } else {
+            logger.info("Client ID loaded (length: ${clientId.length}, starts with: ${clientId.take(4)}...)")
+        }
+
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
 
@@ -34,9 +45,14 @@ class SalesforceAuthService(
         val request = HttpEntity(map, headers)
 
         return try {
-            restTemplate.postForObject(url, request, SalesforceTokenResponse::class.java)
+            val response = restTemplate.postForObject(url, request, SalesforceTokenResponse::class.java)
+            logger.info("Successfully authenticated with Salesforce.")
+            response
         } catch (e: Exception) {
-            println("Error authenticating with Salesforce: ${e.message}")
+            logger.error("Error authenticating with Salesforce: ${e.message}")
+            if (e is org.springframework.web.client.HttpClientErrorException) {
+                logger.error("Response Body: ${e.responseBodyAsString}")
+            }
             null
         }
     }

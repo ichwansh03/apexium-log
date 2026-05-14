@@ -1,6 +1,8 @@
 package com.observability.sfdc.config
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.CacheManager
@@ -23,8 +25,7 @@ class RedisConfig(
 
     @Bean
     fun cacheManager(connectionFactory: RedisConnectionFactory): CacheManager {
-        val objectMapper = ObjectMapper().registerKotlinModule()
-        val serializer = GenericJackson2JsonRedisSerializer(objectMapper)
+        val serializer = GenericJackson2JsonRedisSerializer()
 
         val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer()))
