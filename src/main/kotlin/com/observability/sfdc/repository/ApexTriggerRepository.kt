@@ -8,4 +8,5 @@ import java.util.Optional
 @Repository
 interface ApexTriggerRepository : JpaRepository<ApexTrigger, Long> {
     fun findBySfdcId(sfdcId: String): Optional<ApexTrigger>
+    fun findByNameContainingIgnoreCase(name: String): List<ApexTrigger>
 }

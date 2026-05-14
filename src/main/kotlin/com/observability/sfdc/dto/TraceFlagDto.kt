@@ -34,3 +34,41 @@ data class SalesforceCreateResponse(
     val success: Boolean,
     val errors: List<String> = emptyList()
 )
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class TraceFlagDto(
+    @JsonProperty("Id")
+    val id: String,
+    @JsonProperty("TracedEntityId")
+    val tracedEntityId: String,
+    @JsonProperty("TracedEntity")
+    val tracedEntity: TracedEntityDto?,
+    @JsonProperty("StartDate")
+    val startDate: String?,
+    @JsonProperty("ExpirationDate")
+    val expirationDate: String?,
+    @JsonProperty("DebugLevelId")
+    val debugLevelId: String?,
+    @JsonProperty("DebugLevel")
+    val debugLevel: DebugLevelSummaryDto?
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class TracedEntityDto(
+    @JsonProperty("Name")
+    val name: String?,
+    @JsonProperty("attributes")
+    val attributes: EntityAttributesDto?
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class EntityAttributesDto(
+    @JsonProperty("type")
+    val type: String?
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class DebugLevelSummaryDto(
+    @JsonProperty("DeveloperName")
+    val developerName: String?
+)

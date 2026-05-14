@@ -8,4 +8,5 @@ import java.util.Optional
 @Repository
 interface ApexClassRepository : JpaRepository<ApexClass, Long> {
     fun findBySfdcId(sfdcId: String): Optional<ApexClass>
+    fun findByNameContainingIgnoreCase(name: String): List<ApexClass>
 }

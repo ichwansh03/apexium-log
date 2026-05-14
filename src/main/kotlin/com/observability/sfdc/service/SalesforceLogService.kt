@@ -135,4 +135,53 @@ class SalesforceLogService(
             SalesforceCreateResponse(id = null, success = false, errors = listOf(e.message ?: "Unknown error"))
         }
     }
+
+    fun getActiveTraceFlags(): List<TraceFlagDto> {
+        val tokenResponse = authService.getAccessToken() ?: return emptyList()
+        
+        val baseUrl = tokenResponse.instanceUrl
+        val query = "SELECT Id, TracedEntityId, TracedEntity.Name, StartDate, ExpirationDate, DebugLevelId, DebugLevel.DeveloperName FROM TraceFlag WHERE ExpirationDate > ${ZonedDateTime.now(ZoneId.of("UTC")).format(sfdcFormatter)}"
+        
+        val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
+            .queryParam("q", query)
+            .build()
+            .toUriString()
+
+        val headers = HttpHeaders()
+        headers.setBearerAuth(tokenResponse.accessToken)
+        
+        val entity = HttpEntity<Unit>(headers)
+        
+        return try {
+            val response: ResponseEntity<SalesforceQueryResult<TraceFlagDto>> = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                object : ParameterizedTypeReference<SalesforceQueryResult<TraceFlagDto>>() {}
+            )
+            response.body?.records ?: emptyList()
+        } catch (e: Exception) {
+            println("Error querying active TraceFlags: ${e.message}")
+            emptyList()
+        }
+    }
+
+    fun deleteTraceFlag(id: String): Boolean {
+        val tokenResponse = authService.getAccessToken() ?: return false
+        
+        val baseUrl = tokenResponse.instanceUrl
+        val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag/$id"
+
+        val headers = HttpHeaders()
+        headers.setBearerAuth(tokenResponse.accessToken)
+        
+        val entity = HttpEntity<Unit>(headers)
+        
+        return try {
+            restTemplate.exchange(url, HttpMethod.DELETE, entity, Unit::class.java).statusCode.is2xxSuccessful
+        } catch (e: Exception) {
+            println("Error deleting TraceFlag $id: ${e.message}")
+            false
+        }
+    }
 }

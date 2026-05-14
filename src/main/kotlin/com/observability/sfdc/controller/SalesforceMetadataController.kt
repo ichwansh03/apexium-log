@@ -4,6 +4,8 @@ import com.observability.sfdc.dto.ApexClassDto
 import com.observability.sfdc.dto.ApexTriggerDto
 import com.observability.sfdc.dto.DebugLevelDto
 import com.observability.sfdc.service.SalesforceMetadataService
+import com.observability.sfdc.domain.ApexClass
+import com.observability.sfdc.domain.ApexTrigger
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -30,6 +32,13 @@ class SalesforceMetadataController(
         return metadataService.getAllApexClasses(size, offset)
     }
 
+    @GetMapping("/classes/db")
+    fun searchClasses(
+        @RequestParam(required = false) name: String?
+    ): List<ApexClass> {
+        return metadataService.searchClasses(name)
+    }
+
     @GetMapping("/triggers")
     fun getApexTriggers(
         @RequestParam(defaultValue = "10") size: Int,
@@ -37,5 +46,12 @@ class SalesforceMetadataController(
     ): List<ApexTriggerDto> {
         val offset = page * size
         return metadataService.getAllApexTriggers(size, offset)
+    }
+
+    @GetMapping("/triggers/db")
+    fun searchTriggers(
+        @RequestParam(required = false) name: String?
+    ): List<ApexTrigger> {
+        return metadataService.searchTriggers(name)
     }
 }

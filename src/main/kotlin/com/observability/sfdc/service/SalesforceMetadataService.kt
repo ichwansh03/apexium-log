@@ -165,6 +165,22 @@ class SalesforceMetadataService(
         }
     }
 
+    fun searchClasses(name: String?): List<ApexClass> {
+        return if (name.isNullOrBlank()) {
+            classRepository.findAll()
+        } else {
+            classRepository.findByNameContainingIgnoreCase(name)
+        }
+    }
+
+    fun searchTriggers(name: String?): List<ApexTrigger> {
+        return if (name.isNullOrBlank()) {
+            triggerRepository.findAll()
+        } else {
+            triggerRepository.findByNameContainingIgnoreCase(name)
+        }
+    }
+
     private fun syncClassesToDatabase(dtos: List<ApexClassDto>) {
         dtos.forEach { dto ->
             val existing = classRepository.findBySfdcId(dto.id)

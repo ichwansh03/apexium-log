@@ -8,4 +8,6 @@ import java.util.Optional
 @Repository
 interface UserRepository : JpaRepository<User, Long> {
     fun findBySfdcId(sfdcId: String): Optional<User>
+    fun findByNameContainingIgnoreCase(name: String): List<User>
+    fun findByUsernameContainingIgnoreCase(username: String): List<User>
 }

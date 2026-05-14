@@ -4,6 +4,8 @@ import com.observability.sfdc.domain.Log
 import com.observability.sfdc.dto.*
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.SalesforceLogService
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -46,5 +48,16 @@ class SalesforceLogController(
     @PostMapping("/trace-flags")
     fun createTraceFlag(@RequestBody request: FrontendTraceFlagRequest): SalesforceCreateResponse? {
         return logService.createTraceFlag(request)
+    }
+
+    @GetMapping("/trace-flags")
+    fun getActiveTraceFlags(): List<TraceFlagDto> {
+        return logService.getActiveTraceFlags()
+    }
+
+    @DeleteMapping("/trace-flags/{id}")
+    fun deleteTraceFlag(@PathVariable id: String): ResponseEntity<Unit> {
+        val deleted = logService.deleteTraceFlag(id)
+        return if (deleted) ResponseEntity.ok().build() else ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
     }
 }

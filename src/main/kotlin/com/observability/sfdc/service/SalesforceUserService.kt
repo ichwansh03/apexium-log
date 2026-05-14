@@ -59,6 +59,14 @@ class SalesforceUserService(
         }
     }
 
+    fun searchUsers(name: String?): List<User> {
+        return if (name.isNullOrBlank()) {
+            userRepository.findAll()
+        } else {
+            userRepository.findByNameContainingIgnoreCase(name)
+        }
+    }
+
     private fun syncUsersToDatabase(dtos: List<SalesforceUserDto>) {
         dtos.forEach { dto ->
             val existing = userRepository.findBySfdcId(dto.id)
