@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
 class SalesforceLogService(
     private val authService: SalesforceAuthService,
     private val debugLevelRepository: DebugLevelRepository,
-    @Value("\${salesforce.api-version}") private val apiVersion: String
+    @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
     private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")

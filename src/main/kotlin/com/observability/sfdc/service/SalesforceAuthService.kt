@@ -13,10 +13,10 @@ import org.springframework.web.client.RestTemplate
 
 @Service
 class SalesforceAuthService(
-    @Value("\${salesforce.login-url}") private val loginUrl: String,
-    @Value("\${salesforce.client-id}") private val clientId: String,
-    @Value("\${salesforce.client-secret}") private val clientSecret: String,
-    @Value("\${salesforce.grant-type}") private val grantType: String
+    @Value($$"${salesforce.login-url}") private val loginUrl: String,
+    @Value($$"${salesforce.client-id}") private val clientId: String,
+    @Value($$"${salesforce.client-secret}") private val clientSecret: String,
+    @Value($$"${salesforce.grant-type}") private val grantType: String
 ) {
     private val restTemplate = RestTemplate()
     private val logger = LoggerFactory.getLogger(SalesforceAuthService::class.java)

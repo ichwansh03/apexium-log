@@ -27,7 +27,7 @@ class SalesforceMetadataService(
     private val classRepository: ApexClassRepository,
     private val triggerRepository: ApexTriggerRepository,
     private val debugLevelRepository: DebugLevelRepository,
-    @Value("\${salesforce.api-version}") private val apiVersion: String
+    @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
 
