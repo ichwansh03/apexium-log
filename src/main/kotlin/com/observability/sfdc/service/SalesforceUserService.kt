@@ -30,10 +30,10 @@ class SalesforceUserService(
         val baseUrl = tokenResponse.instanceUrl
         val query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE IsActive = TRUE AND Entity__c = 'AMFS' OR Name = 'Automated Process' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
-        val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/query")
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/query")
             .queryParam("q", query)
             .build()
-            .toUriString()
+            .toUri()
 
         val headers = HttpHeaders()
         headers.setBearerAuth(tokenResponse.accessToken)
@@ -42,7 +42,7 @@ class SalesforceUserService(
         
         return try {
             val response: ResponseEntity<SalesforceQueryResult<SalesforceUserDto>> = restTemplate.exchange(
-                url,
+                uri,
                 HttpMethod.GET,
                 entity,
                 object : ParameterizedTypeReference<SalesforceQueryResult<SalesforceUserDto>>() {}

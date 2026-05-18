@@ -38,10 +38,10 @@ class SalesforceMetadataService(
         val baseUrl = tokenResponse.instanceUrl
         val query = "SELECT Id, DeveloperName, MasterLabel, ApexCode, ApexProfiling, Callout, Database, System, Validation, Visualforce, Workflow FROM DebugLevel LIMIT $limit OFFSET $offset"
         
-        val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
             .build()
-            .toUriString()
+            .toUri()
 
         val headers = HttpHeaders()
         headers.setBearerAuth(tokenResponse.accessToken)
@@ -50,7 +50,7 @@ class SalesforceMetadataService(
         
         return try {
             val response: ResponseEntity<SalesforceQueryResult<DebugLevelDto>> = restTemplate.exchange(
-                url,
+                uri,
                 HttpMethod.GET,
                 entity,
                 object : ParameterizedTypeReference<SalesforceQueryResult<DebugLevelDto>>() {}
@@ -106,10 +106,10 @@ class SalesforceMetadataService(
         val baseUrl = tokenResponse.instanceUrl
         val query = "SELECT Id, Name, ApiVersion, Status, LengthWithoutComments, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexClass WHERE Status = 'Active' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
-        val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
             .build()
-            .toUriString()
+            .toUri()
 
         val headers = HttpHeaders()
         headers.setBearerAuth(tokenResponse.accessToken)
@@ -118,7 +118,7 @@ class SalesforceMetadataService(
         
         return try {
             val response: ResponseEntity<SalesforceQueryResult<ApexClassDto>> = restTemplate.exchange(
-                url,
+                uri,
                 HttpMethod.GET,
                 entity,
                 object : ParameterizedTypeReference<SalesforceQueryResult<ApexClassDto>>() {}
@@ -139,10 +139,10 @@ class SalesforceMetadataService(
         val baseUrl = tokenResponse.instanceUrl
         val query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexTrigger WHERE Status = 'Active' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
-        val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
             .build()
-            .toUriString()
+            .toUri()
 
         val headers = HttpHeaders()
         headers.setBearerAuth(tokenResponse.accessToken)
@@ -151,7 +151,7 @@ class SalesforceMetadataService(
         
         return try {
             val response: ResponseEntity<SalesforceQueryResult<ApexTriggerDto>> = restTemplate.exchange(
-                url,
+                uri,
                 HttpMethod.GET,
                 entity,
                 object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {}

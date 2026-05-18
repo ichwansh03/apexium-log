@@ -20,7 +20,7 @@ class SalesforceLogService(
     @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
-    private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
     fun queryApexLogs(limit: Int = 10, offset: Int = 0): List<ApexLogDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
@@ -28,10 +28,10 @@ class SalesforceLogService(
         val baseUrl = tokenResponse.instanceUrl
         val query = "SELECT Id, LogUser.Name, Operation, StartTime, Status, Request, LogLength, DurationMilliseconds FROM ApexLog ORDER BY StartTime DESC LIMIT $limit OFFSET $offset"
         
-        val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
             .build()
-            .toUriString()
+            .toUri()
 
         val headers = HttpHeaders()
         headers.setBearerAuth(tokenResponse.accessToken)
@@ -40,7 +40,7 @@ class SalesforceLogService(
         
         return try {
             val response: ResponseEntity<SalesforceQueryResult<ApexLogDto>> = restTemplate.exchange(
-                url,
+                uri,
                 HttpMethod.GET,
                 entity,
                 object : ParameterizedTypeReference<SalesforceQueryResult<ApexLogDto>>() {}
@@ -142,10 +142,10 @@ class SalesforceLogService(
         val baseUrl = tokenResponse.instanceUrl
         val query = "SELECT Id, TracedEntityId, TracedEntity.Name, StartDate, ExpirationDate, DebugLevelId, DebugLevel.DeveloperName FROM TraceFlag WHERE ExpirationDate > ${ZonedDateTime.now(ZoneId.of("UTC")).format(sfdcFormatter)}"
         
-        val url = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
             .build()
-            .toUriString()
+            .toUri()
 
         val headers = HttpHeaders()
         headers.setBearerAuth(tokenResponse.accessToken)
@@ -154,7 +154,7 @@ class SalesforceLogService(
         
         return try {
             val response: ResponseEntity<SalesforceQueryResult<TraceFlagDto>> = restTemplate.exchange(
-                url,
+                uri,
                 HttpMethod.GET,
                 entity,
                 object : ParameterizedTypeReference<SalesforceQueryResult<TraceFlagDto>>() {}
