@@ -166,19 +166,33 @@ class SalesforceMetadataService(
     }
 
     fun searchClasses(name: String?): List<ApexClass> {
-        return if (name.isNullOrBlank()) {
+        val classes = if (name.isNullOrBlank()) {
             classRepository.findAll()
         } else {
             classRepository.findByNameContainingIgnoreCase(name)
         }
+        
+        if (classes.isEmpty() && name.isNullOrBlank()) {
+            // Trigger background sync if DB is empty
+            Thread { getAllApexClasses(limit = 100) }.start()
+        }
+        
+        return classes
     }
 
     fun searchTriggers(name: String?): List<ApexTrigger> {
-        return if (name.isNullOrBlank()) {
+        val triggers = if (name.isNullOrBlank()) {
             triggerRepository.findAll()
         } else {
             triggerRepository.findByNameContainingIgnoreCase(name)
         }
+        
+        if (triggers.isEmpty() && name.isNullOrBlank()) {
+            // Trigger background sync if DB is empty
+            Thread { getAllApexTriggers(limit = 100) }.start()
+        }
+        
+        return triggers
     }
 
     private fun syncClassesToDatabase(dtos: List<ApexClassDto>) {

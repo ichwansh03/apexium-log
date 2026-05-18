@@ -19,7 +19,7 @@ import org.springframework.web.util.UriComponentsBuilder
 class SalesforceUserService(
     private val authService: SalesforceAuthService,
     private val userRepository: UserRepository,
-    @Value("\${salesforce.api-version}") private val apiVersion: String
+    @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
 
@@ -60,11 +60,18 @@ class SalesforceUserService(
     }
 
     fun searchUsers(name: String?): List<User> {
-        return if (name.isNullOrBlank()) {
+        val users = if (name.isNullOrBlank()) {
             userRepository.findAll()
         } else {
             userRepository.findByNameContainingIgnoreCase(name)
         }
+        
+        if (users.isEmpty() && name.isNullOrBlank()) {
+            // Trigger background sync if DB is empty
+            Thread { getAllUsers(limit = 100) }.start()
+        }
+        
+        return users
     }
 
     private fun syncUsersToDatabase(dtos: List<SalesforceUserDto>) {
