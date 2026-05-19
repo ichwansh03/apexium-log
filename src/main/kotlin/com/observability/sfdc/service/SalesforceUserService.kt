@@ -28,7 +28,7 @@ class SalesforceUserService(
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE IsActive = TRUE AND Entity__c = 'AMFS' OR Name = 'Automated Process' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
+        val query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE (IsActive = TRUE AND Entity__c = 'AMFS') OR Name = 'Automated Process' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/query")
             .queryParam("q", query)
