@@ -195,6 +195,21 @@ class SalesforceMetadataService(
         return triggers
     }
 
+    fun searchDebugLevels(name: String?): List<DebugLevel> {
+        val levels = if (name.isNullOrBlank()) {
+            debugLevelRepository.findAll()
+        } else {
+            debugLevelRepository.findByDeveloperNameContainingIgnoreCaseOrMasterLabelContainingIgnoreCase(name, name)
+        }
+        
+        if (levels.isEmpty() && name.isNullOrBlank()) {
+            // Trigger background sync if DB is empty
+            Thread { getAllDebugLevels(limit = 100) }.start()
+        }
+        
+        return levels
+    }
+
     private fun syncClassesToDatabase(dtos: List<ApexClassDto>) {
         dtos.forEach { dto ->
             val existing = classRepository.findBySfdcId(dto.id)

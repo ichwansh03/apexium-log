@@ -113,9 +113,15 @@ class SalesforceLogService(
             .plusMinutes(frontendRequest.durationMinutes.toLong())
             .format(sfdcFormatter)
 
+        val logType = when (frontendRequest.entityType) {
+            "ApexClass", "ApexTrigger" -> "CLASS_TRACING"
+            else -> "USER_DEBUG"
+        }
+
         val sfdcRequest = TraceFlagRequest(
             tracedEntityId = frontendRequest.tracedEntityId,
             debugLevelId = debugLevel.sfdcId,
+            logType = logType,
             expirationDate = expirationDate
         )
 

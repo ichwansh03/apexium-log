@@ -12,7 +12,7 @@ data class TraceFlagRequest(
     val debugLevelId: String,
     
     @JsonProperty("LogType")
-    val logType: String = "USER_DEBUG",
+    val logType: String,
     
     @JsonProperty("StartDate")
     val startDate: String? = null,
@@ -25,7 +25,8 @@ data class TraceFlagRequest(
 data class FrontendTraceFlagRequest(
     val tracedEntityId: String,
     val debugLevelName: String,
-    val durationMinutes: Int
+    val durationMinutes: Int,
+    val entityType: String? = "User"
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

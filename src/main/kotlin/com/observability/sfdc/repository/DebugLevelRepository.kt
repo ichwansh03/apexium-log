@@ -8,4 +8,5 @@ import java.util.*
 @Repository
 interface DebugLevelRepository : JpaRepository<DebugLevel, Long> {
     fun findBySfdcId(sfdcId: String): Optional<DebugLevel>
+    fun findByDeveloperNameContainingIgnoreCaseOrMasterLabelContainingIgnoreCase(developerName: String, masterLabel: String): List<DebugLevel>
 }

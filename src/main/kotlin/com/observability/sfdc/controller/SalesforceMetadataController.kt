@@ -26,6 +26,13 @@ class SalesforceMetadataController(
         return metadataService.getAllDebugLevels(size, offset)
     }
 
+    @GetMapping("/debug-levels/db")
+    fun searchDebugLevels(
+        @RequestParam(required = false) name: String?
+    ): List<com.observability.sfdc.domain.DebugLevel> {
+        return metadataService.searchDebugLevels(name)
+    }
+
     @GetMapping("/classes")
     fun getApexClasses(
         @RequestParam(defaultValue = "10") size: Int,
