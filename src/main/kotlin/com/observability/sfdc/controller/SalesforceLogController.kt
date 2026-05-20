@@ -1,7 +1,10 @@
 package com.observability.sfdc.controller
 
 import com.observability.sfdc.domain.Log
-import com.observability.sfdc.dto.*
+import com.observability.sfdc.dto.ApexLogDto
+import com.observability.sfdc.dto.FrontendTraceFlagRequest
+import com.observability.sfdc.dto.SalesforceCreateResponse
+import com.observability.sfdc.dto.TraceFlagDto
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.SalesforceLogService
 import org.springframework.http.HttpStatus

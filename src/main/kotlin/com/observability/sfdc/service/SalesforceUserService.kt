@@ -1,9 +1,9 @@
 package com.observability.sfdc.service
 
+import com.observability.sfdc.domain.User
 import com.observability.sfdc.dto.SalesforceQueryResult
 import com.observability.sfdc.dto.SalesforceUserDto
 import com.observability.sfdc.repository.UserRepository
-import com.observability.sfdc.domain.User
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
