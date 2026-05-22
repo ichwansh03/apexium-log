@@ -13,7 +13,7 @@ data class ApexTrigger(
     val sfdcId: String,
 
     val name: String?,
-    val tableEnumOrId: String?,
+    val sobject: String?,
     val apiVersion: Double?,
     val status: String?,
     val usageBeforeInsert: Boolean?,

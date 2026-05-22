@@ -63,9 +63,13 @@ class SalesforceLogService(
 
         // Pattern 1: CODE_UNIT_STARTED for triggers and other units
         // Example: |CODE_UNIT_STARTED|[EXTERNAL]|01q...|LogEventTrigger on AppLog__ChangeEvent...
-        val triggerRegex = Regex("\\|CODE_UNIT_STARTED\\|\\[[^]]*]\\|[^|]*\\|(\\S+)(?:\\son|\\strigger)")
+        val triggerRegex = Regex("\\|CODE_UNIT_STARTED\\|\\[[^]]*]\\|[^|]*\\|(\\S+)(?:\\son\\s(\\S+))?")
         val triggerMatch = triggerRegex.find(body)
-        if (triggerMatch != null) return triggerMatch.groupValues[1]
+        if (triggerMatch != null) {
+            val name = triggerMatch.groupValues[1]
+            val sobject = triggerMatch.groupValues.getOrNull(2)
+            return if (sobject != null && sobject.isNotBlank()) "$name on $sobject" else name
+        }
 
         // Pattern 2: METHOD_ENTRY or CLASS_ENTRY for standard Apex classes
         // Example: |METHOD_ENTRY|[5]|01p...|MyController.doSomething()

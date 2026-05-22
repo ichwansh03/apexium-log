@@ -184,7 +184,7 @@ class SalesforceMetadataService(
         val triggers = if (name.isNullOrBlank()) {
             triggerRepository.findAll()
         } else {
-            triggerRepository.findByNameContainingIgnoreCase(name)
+            triggerRepository.findByNameContainingIgnoreCaseOrSobjectContainingIgnoreCase(name, name)
         }
         
         if (triggers.isEmpty() && name.isNullOrBlank()) {
@@ -247,7 +247,7 @@ class SalesforceMetadataService(
             val trigger = if (existing.isPresent) {
                 existing.get().copy(
                     name = dto.name,
-                    tableEnumOrId = dto.tableEnumOrId,
+                    sobject = dto.tableEnumOrId,
                     apiVersion = dto.apiVersion,
                     status = dto.status,
                     usageBeforeInsert = dto.usageBeforeInsert,
@@ -265,7 +265,7 @@ class SalesforceMetadataService(
                 ApexTrigger(
                     sfdcId = dto.id,
                     name = dto.name,
-                    tableEnumOrId = dto.tableEnumOrId,
+                    sobject = dto.tableEnumOrId,
                     apiVersion = dto.apiVersion,
                     status = dto.status,
                     usageBeforeInsert = dto.usageBeforeInsert,

@@ -9,4 +9,5 @@ import java.util.*
 interface ApexTriggerRepository : JpaRepository<ApexTrigger, Long> {
     fun findBySfdcId(sfdcId: String): Optional<ApexTrigger>
     fun findByNameContainingIgnoreCase(name: String): List<ApexTrigger>
+    fun findByNameContainingIgnoreCaseOrSobjectContainingIgnoreCase(name: String, sobject: String): List<ApexTrigger>
 }
