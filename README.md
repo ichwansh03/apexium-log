@@ -66,9 +66,29 @@ graph TD
 
 ## Getting Started
 
-1.  **Salesforce Setup**: Ensure you have a `PushTopic` created and `TraceFlags` active.
-2.  **Configuration**: Update `src/main/resources/application.properties` with your Salesforce credentials and endpoint.
-3.  **Reference**: See [SKILL.md](./SKILL.md) for detailed implementation snippets and API references.
+1.  **Salesforce Setup**: Ensure you have a `PushTopic` created and `TraceFlags` active in your Salesforce org.
+2.  **Environment Configuration**: To avoid hardcoding sensitive information like `client_id` and `client_secret` in `application.properties`, create a `.env` file in the root directory. Follow this structure:
+    ```bash
+    # Salesforce Configuration
+    SALESFORCE_INSTANCE_ORG=https://login.salesforce.com
+    SALESFORCE_CLIENT_ID=your_client_id
+    SALESFORCE_CLIENT_SECRET=your_client_secret
+    SALESFORCE_GRANT_TYPE=password # or your preferred grant type
+    SALESFORCE_API_VERSION=v60.0
+
+    # Database Configuration
+    DB_HOST=localhost
+    DB_PORT=5432
+    DB_NAME=sfdc_logs
+    DB_USER=postgres
+    DB_PASSWORD=postgres
+
+    # Redis Configuration
+    REDIS_HOST=localhost
+    REDIS_PORT=6379
+    ```
+3.  **Run Application**: Ensure your local database (PostgreSQL) and Redis are running, then start the application using Maven.
+4.  **Reference**: See [SKILL.md](./SKILL.md) for detailed implementation snippets and API references.
 
 ---
 *Maintained by the Observability Engineering Team.*
