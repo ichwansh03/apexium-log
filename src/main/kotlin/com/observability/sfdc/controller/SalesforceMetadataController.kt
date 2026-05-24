@@ -28,9 +28,12 @@ class SalesforceMetadataController(
 
     @GetMapping("/debug-levels/db")
     fun searchDebugLevels(
-        @RequestParam(required = false) name: String?
+        @RequestParam(required = false) name: String?,
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(defaultValue = "0") page: Int
     ): List<com.observability.sfdc.domain.DebugLevel> {
-        return metadataService.searchDebugLevels(name)
+        val offset = page * size
+        return metadataService.searchDebugLevels(name, size, offset)
     }
 
     @GetMapping("/classes")
@@ -44,9 +47,12 @@ class SalesforceMetadataController(
 
     @GetMapping("/classes/db")
     fun searchClasses(
-        @RequestParam(required = false) name: String?
+        @RequestParam(required = false) name: String?,
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(defaultValue = "0") page: Int
     ): List<ApexClass> {
-        return metadataService.searchClasses(name)
+        val offset = page * size
+        return metadataService.searchClasses(name, size, offset)
     }
 
     @GetMapping("/triggers")
@@ -60,8 +66,11 @@ class SalesforceMetadataController(
 
     @GetMapping("/triggers/db")
     fun searchTriggers(
-        @RequestParam(required = false) name: String?
+        @RequestParam(required = false) name: String?,
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(defaultValue = "0") page: Int
     ): List<ApexTrigger> {
-        return metadataService.searchTriggers(name)
+        val offset = page * size
+        return metadataService.searchTriggers(name, size, offset)
     }
 }
