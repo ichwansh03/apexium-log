@@ -13,6 +13,8 @@ import com.observability.sfdc.repository.DebugLevelRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -27,7 +29,7 @@ class SalesforceMetadataService(
     private val classRepository: ApexClassRepository,
     private val triggerRepository: ApexTriggerRepository,
     private val debugLevelRepository: DebugLevelRepository,
-    @Value($$"${salesforce.api-version}") private val apiVersion: String
+    @Value("\${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
 
@@ -165,11 +167,12 @@ class SalesforceMetadataService(
         }
     }
 
-    fun searchClasses(name: String?): List<ApexClass> {
+    fun searchClasses(name: String?, limit: Int = 10, offset: Int = 0): List<ApexClass> {
+        val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
         val classes = if (name.isNullOrBlank()) {
-            classRepository.findAll()
+            classRepository.findAllProjectedBy(pageable)
         } else {
-            classRepository.findByNameContainingIgnoreCase(name)
+            classRepository.findByNameContainingIgnoreCase(name, pageable)
         }
         
         if (classes.isEmpty() && name.isNullOrBlank()) {
@@ -180,11 +183,12 @@ class SalesforceMetadataService(
         return classes
     }
 
-    fun searchTriggers(name: String?): List<ApexTrigger> {
+    fun searchTriggers(name: String?, limit: Int = 10, offset: Int = 0): List<ApexTrigger> {
+        val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
         val triggers = if (name.isNullOrBlank()) {
-            triggerRepository.findAll()
+            triggerRepository.findAllProjectedBy(pageable)
         } else {
-            triggerRepository.findByNameContainingIgnoreCaseOrSobjectContainingIgnoreCase(name, name)
+            triggerRepository.findByNameContainingIgnoreCaseOrSobjectContainingIgnoreCase(name, name, pageable)
         }
         
         if (triggers.isEmpty() && name.isNullOrBlank()) {
@@ -195,11 +199,12 @@ class SalesforceMetadataService(
         return triggers
     }
 
-    fun searchDebugLevels(name: String?): List<DebugLevel> {
+    fun searchDebugLevels(name: String?, limit: Int = 10, offset: Int = 0): List<DebugLevel> {
+        val pageable = PageRequest.of(offset / limit, limit, Sort.by("developerName").ascending())
         val levels = if (name.isNullOrBlank()) {
-            debugLevelRepository.findAll()
+            debugLevelRepository.findAllProjectedBy(pageable)
         } else {
-            debugLevelRepository.findByDeveloperNameContainingIgnoreCaseOrMasterLabelContainingIgnoreCase(name, name)
+            debugLevelRepository.findByDeveloperNameContainingIgnoreCaseOrMasterLabelContainingIgnoreCase(name, name, pageable)
         }
         
         if (levels.isEmpty() && name.isNullOrBlank()) {

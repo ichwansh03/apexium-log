@@ -7,6 +7,8 @@ import com.observability.sfdc.repository.UserRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -59,11 +61,12 @@ class SalesforceUserService(
         }
     }
 
-    fun searchUsers(name: String?): List<User> {
+    fun searchUsers(name: String?, limit: Int = 10, offset: Int = 0): List<User> {
+        val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
         val users = if (name.isNullOrBlank()) {
-            userRepository.findAll()
+            userRepository.findAllProjectedBy(pageable)
         } else {
-            userRepository.findByNameContainingIgnoreCase(name)
+            userRepository.findByNameContainingIgnoreCase(name, pageable)
         }
         
         if (users.isEmpty() && name.isNullOrBlank()) {

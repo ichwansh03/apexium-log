@@ -25,8 +25,11 @@ class SalesforceUserController(
 
     @GetMapping("/db")
     fun searchUsers(
-        @RequestParam(required = false) name: String?
+        @RequestParam(required = false) name: String?,
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(defaultValue = "0") page: Int
     ): List<User> {
-        return userService.searchUsers(name)
+        val offset = page * size
+        return userService.searchUsers(name, size, offset)
     }
 }

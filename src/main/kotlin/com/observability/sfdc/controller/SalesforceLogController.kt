@@ -7,6 +7,8 @@ import com.observability.sfdc.dto.SalesforceCreateResponse
 import com.observability.sfdc.dto.TraceFlagDto
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.SalesforceLogService
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -30,16 +32,19 @@ class SalesforceLogController(
     @GetMapping("/db")
     fun getDbLogs(
         @RequestParam(required = false) className: String?,
-        @RequestParam(required = false) author: String?
+        @RequestParam(required = false) author: String?,
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(defaultValue = "0") page: Int
     ): List<Log> {
+        val pageable = PageRequest.of(page, size, Sort.by("requestTime").descending())
         return when {
             !className.isNullOrBlank() && !author.isNullOrBlank() ->
-                logRepository.findByApexClassNameContainingIgnoreCaseAndAuthorNameContainingIgnoreCase(className, author)
+                logRepository.findByApexClassNameContainingIgnoreCaseAndAuthorNameContainingIgnoreCase(className, author, pageable)
             !className.isNullOrBlank() ->
-                logRepository.findByApexClassNameContainingIgnoreCase(className)
+                logRepository.findByApexClassNameContainingIgnoreCase(className, pageable)
             !author.isNullOrBlank() ->
-                logRepository.findByAuthorNameContainingIgnoreCase(author)
-            else -> logRepository.findAllByOrderByRequestTimeDesc()
+                logRepository.findByAuthorNameContainingIgnoreCase(author, pageable)
+            else -> logRepository.findAllByOrderByRequestTimeDesc(pageable)
         }
     }
 
