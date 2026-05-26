@@ -7,6 +7,7 @@ import com.observability.sfdc.dto.SalesforceCreateResponse
 import com.observability.sfdc.dto.TraceFlagDto
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.SalesforceLogService
+import jakarta.validation.Valid
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -54,7 +55,7 @@ class SalesforceLogController(
     }
 
     @PostMapping("/trace-flags")
-    fun createTraceFlag(@RequestBody request: FrontendTraceFlagRequest): SalesforceCreateResponse? {
+    fun createTraceFlag(@Valid @RequestBody request: FrontendTraceFlagRequest): SalesforceCreateResponse? {
         return logService.createTraceFlag(request)
     }
 

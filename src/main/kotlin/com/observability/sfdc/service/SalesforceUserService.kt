@@ -14,18 +14,19 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestTemplate
-import org.springframework.web.util.UriComponentsBuilder
 
 @Service
 class SalesforceUserService(
     private val authService: SalesforceAuthService,
     private val userRepository: UserRepository,
-    @Value($$"${salesforce.api-version}") private val apiVersion: String
+    @Value("\${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
 
     @Cacheable(value = ["sf_users"], key = "'all_users_' + #limit + '_' + #offset", unless = "#result == null")
+    @Transactional
     fun getAllUsers(limit: Int = 10, offset: Int = 0): List<SalesforceUserDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
