@@ -61,22 +61,32 @@ class SalesforceLogService(
     private fun extractClassName(body: String?): String? {
         if (body == null) return null
 
-        // Pattern 1: CODE_UNIT_STARTED for triggers and other units
-        // Example: |CODE_UNIT_STARTED|[EXTERNAL]|01q...|LogEventTrigger on AppLog__ChangeEvent...
-        val triggerRegex = Regex("\\|CODE_UNIT_STARTED\\|\\[[^]]*]\\|[^|]*\\|(\\S+)(?:\\son\\s(\\S+))?")
-        val triggerMatch = triggerRegex.find(body)
-        if (triggerMatch != null) {
-            val name = triggerMatch.groupValues[1]
-            val sobject = triggerMatch.groupValues.getOrNull(2)
-            return if (sobject != null && sobject.isNotBlank()) "$name on $sobject" else name
+        // Pattern to find the last CODE_UNIT_STARTED or CODE_UNIT_FINISHED which contains the entry point.
+        // This is more reliable as it's typically at the end of the log and captures full context (Classes, Triggers, VF).
+        val codeUnitRegex = Regex("\\|CODE_UNIT_(?:STARTED|FINISHED)\\|(?:.*\\|)?([^\\r\\n|]+)")
+        val matches = codeUnitRegex.findAll(body).toList()
+
+        if (matches.isNotEmpty()) {
+            val fullPath = matches.last().groupValues[1].trim()
+
+            // Handle Visualforce pages: VF: /apex/PageName -> extract PageName
+            if (fullPath.startsWith("VF: /apex/")) {
+                return fullPath.substringAfterLast("/")
+            }
+
+            // Handle Triggers: TriggerName on SObject -> keep full trigger context
+            if (fullPath.contains(" on ", ignoreCase = true)) {
+                return fullPath
+            }
+
+            // Handle Apex Classes: ClassName.methodName -> extract only ClassName
+            // Taking the part before the last dot as the metadata name (handles namespaces correctly).
+            return fullPath.substringBeforeLast(".")
         }
 
-        // Pattern 2: METHOD_ENTRY or CLASS_ENTRY for standard Apex classes
-        // Example: |METHOD_ENTRY|[5]|01p...|MyController.doSomething()
+        // Fallback for standard Apex classes if no CODE_UNIT info is found
         val classRegex = Regex("\\|(?:METHOD_ENTRY|CLASS_ENTRY)\\|\\[[^]]*]\\|(?:[^|]*\\|)?([^.| \\n]+)")
-        val classMatch = classRegex.find(body)
-
-        return classMatch?.groupValues?.get(1)
+        return classRegex.find(body)?.groupValues?.get(1)
     }
 
     @Cacheable(value = ["sf_logs_body"], key = "#logId", unless = "#result == null")
