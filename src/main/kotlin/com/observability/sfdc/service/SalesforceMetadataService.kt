@@ -20,6 +20,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.util.UriComponentsBuilder
 
@@ -34,6 +35,7 @@ class SalesforceMetadataService(
     private val restTemplate = RestTemplate()
 
     @Cacheable(value = ["sf_metadata"], key = "'debug_levels_' + #limit + '_' + #offset", unless = "#result == null")
+    @Transactional
     fun getAllDebugLevels(limit: Int = 10, offset: Int = 0): List<DebugLevelDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
@@ -102,6 +104,7 @@ class SalesforceMetadataService(
     }
 
     @Cacheable(value = ["sf_metadata"], key = "'apex_classes_' + #limit + '_' + #offset", unless = "#result == null")
+    @Transactional
     fun getAllApexClasses(limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
@@ -135,6 +138,7 @@ class SalesforceMetadataService(
     }
 
     @Cacheable(value = ["sf_metadata"], key = "'apex_triggers_' + #limit + '_' + #offset", unless = "#result == null")
+    @Transactional
     fun getAllApexTriggers(limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         

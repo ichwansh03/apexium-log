@@ -2,10 +2,12 @@ package com.observability.sfdc.dto
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import jakarta.validation.constraints.NotBlank
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApexLogDto(
     @JsonProperty("Id")
+    @field:NotBlank(message = "Salesforce ID is required")
     val id: String,
     
     @JsonProperty("LogUser")

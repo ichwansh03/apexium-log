@@ -5,6 +5,7 @@ import com.observability.sfdc.repository.LogRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -18,6 +19,7 @@ class SalesforceLogPollingService(
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
     @Scheduled(fixedRate = 60000)
+    @Transactional
     fun pollLogs() {
         logger.info("Starting Salesforce log polling cycle...")
         try {
