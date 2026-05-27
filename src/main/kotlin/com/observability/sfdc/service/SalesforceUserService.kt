@@ -63,18 +63,25 @@ class SalesforceUserService(
         }
     }
 
-    @Cacheable(value = ["sf_users"], key = "'search_users_' + #name + '_' + #limit + '_' + #offset", unless = "#result == null")
+    @Cacheable(value = ["sf_users"], key = "'search_users_' + (#name ?: 'null') + '_' + #limit + '_' + #offset", unless = "#result == null || #result.isEmpty()")
     fun searchUsers(name: String?, limit: Int = 10, offset: Int = 0): List<User> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
-        val users = if (name.isNullOrBlank()) {
+        
+        // 1. Check local database
+        var users = if (name.isNullOrBlank()) {
             userRepository.findAllProjectedBy(pageable)
         } else {
             userRepository.findByNameContainingIgnoreCase(name, pageable)
         }
         
+        // 2. If first load (empty DB and no search query), sync from Tooling API synchronously
         if (users.isEmpty() && name.isNullOrBlank()) {
-            // Trigger background sync if DB is empty
-            Thread { getAllUsers(limit = 100) }.start()
+            // SYNC fetch and save to DB
+            val sfUsers = getAllUsers(limit = 100)
+            if (sfUsers.isNotEmpty()) {
+                // Re-query database to get domain objects after sync
+                users = userRepository.findAllProjectedBy(pageable)
+            }
         }
         
         return users

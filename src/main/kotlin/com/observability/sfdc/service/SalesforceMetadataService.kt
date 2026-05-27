@@ -171,52 +171,61 @@ class SalesforceMetadataService(
         }
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'search_classes_' + #name + '_' + #limit + '_' + #offset", unless = "#result == null")
+    @Cacheable(value = ["sf_metadata"], key = "'search_classes_' + (#name ?: 'null') + '_' + #limit + '_' + #offset", unless = "#result == null || #result.isEmpty()")
     fun searchClasses(name: String?, limit: Int = 10, offset: Int = 0): List<ApexClass> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
-        val classes = if (name.isNullOrBlank()) {
+        var classes = if (name.isNullOrBlank()) {
             classRepository.findAllProjectedBy(pageable)
         } else {
             classRepository.findByNameContainingIgnoreCase(name, pageable)
         }
         
         if (classes.isEmpty() && name.isNullOrBlank()) {
-            // Trigger background sync if DB is empty
-            Thread { getAllApexClasses(limit = 100) }.start()
+            // SYNC fetch if DB is empty on first load
+            val sfClasses = getAllApexClasses(limit = 100)
+            if (sfClasses.isNotEmpty()) {
+                classes = classRepository.findAllProjectedBy(pageable)
+            }
         }
         
         return classes
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'search_triggers_' + #name + '_' + #limit + '_' + #offset", unless = "#result == null")
+    @Cacheable(value = ["sf_metadata"], key = "'search_triggers_' + (#name ?: 'null') + '_' + #limit + '_' + #offset", unless = "#result == null || #result.isEmpty()")
     fun searchTriggers(name: String?, limit: Int = 10, offset: Int = 0): List<ApexTrigger> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
-        val triggers = if (name.isNullOrBlank()) {
+        var triggers = if (name.isNullOrBlank()) {
             triggerRepository.findAllProjectedBy(pageable)
         } else {
             triggerRepository.findByNameContainingIgnoreCaseOrSobjectContainingIgnoreCase(name, name, pageable)
         }
         
         if (triggers.isEmpty() && name.isNullOrBlank()) {
-            // Trigger background sync if DB is empty
-            Thread { getAllApexTriggers(limit = 100) }.start()
+            // SYNC fetch if DB is empty on first load
+            val sfTriggers = getAllApexTriggers(limit = 100)
+            if (sfTriggers.isNotEmpty()) {
+                triggers = triggerRepository.findAllProjectedBy(pageable)
+            }
         }
         
         return triggers
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'search_debug_levels_' + #name + '_' + #limit + '_' + #offset", unless = "#result == null")
+    @Cacheable(value = ["sf_metadata"], key = "'search_debug_levels_' + (#name ?: 'null') + '_' + #limit + '_' + #offset", unless = "#result == null || #result.isEmpty()")
     fun searchDebugLevels(name: String?, limit: Int = 10, offset: Int = 0): List<DebugLevel> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("developerName").ascending())
-        val levels = if (name.isNullOrBlank()) {
+        var levels = if (name.isNullOrBlank()) {
             debugLevelRepository.findAllProjectedBy(pageable)
         } else {
             debugLevelRepository.findByDeveloperNameContainingIgnoreCaseOrMasterLabelContainingIgnoreCase(name, name, pageable)
         }
         
         if (levels.isEmpty() && name.isNullOrBlank()) {
-            // Trigger background sync if DB is empty
-            Thread { getAllDebugLevels(limit = 100) }.start()
+            // SYNC fetch if DB is empty on first load
+            val sfLevels = getAllDebugLevels(limit = 100)
+            if (sfLevels.isNotEmpty()) {
+                levels = debugLevelRepository.findAllProjectedBy(pageable)
+            }
         }
         
         return levels
