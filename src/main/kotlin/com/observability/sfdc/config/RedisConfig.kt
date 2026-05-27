@@ -14,9 +14,8 @@ import java.time.Duration
 
 @Configuration
 class RedisConfig(
-    @Value($$"${cache.ttl.token:3600}") private val tokenTtl: Long,
-    @Value($$"${cache.ttl.metadata:3600}") private val metadataTtl: Long,
-    @Value($$"${cache.ttl.logs:86400}") private val logsTtl: Long
+    @Value("${cache.ttl.token:3600}") private val tokenTtl: Long,
+    @Value("${cache.ttl.metadata:3600}") private val metadataTtl: Long
 ) {
 
     @Bean
@@ -29,10 +28,9 @@ class RedisConfig(
             .entryTtl(Duration.ofSeconds(metadataTtl)) // Default TTL
 
         val cacheConfigs = mutableMapOf<String, RedisCacheConfiguration>()
-        
+
         // Custom TTL for specific caches
         cacheConfigs["sf_tokens"] = defaultConfig.entryTtl(Duration.ofSeconds(tokenTtl))
-        cacheConfigs["sf_logs_body"] = defaultConfig.entryTtl(Duration.ofSeconds(logsTtl))
         cacheConfigs["sf_metadata"] = defaultConfig.entryTtl(Duration.ofSeconds(metadataTtl))
         cacheConfigs["sf_users"] = defaultConfig.entryTtl(Duration.ofSeconds(metadataTtl))
 

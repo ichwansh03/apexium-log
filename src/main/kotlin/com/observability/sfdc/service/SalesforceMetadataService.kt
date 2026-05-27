@@ -30,7 +30,7 @@ class SalesforceMetadataService(
     private val classRepository: ApexClassRepository,
     private val triggerRepository: ApexTriggerRepository,
     private val debugLevelRepository: DebugLevelRepository,
-    @Value("\${salesforce.api-version}") private val apiVersion: String
+    @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
 
@@ -171,6 +171,7 @@ class SalesforceMetadataService(
         }
     }
 
+    @Cacheable(value = ["sf_metadata"], key = "'search_classes_' + #name + '_' + #limit + '_' + #offset", unless = "#result == null")
     fun searchClasses(name: String?, limit: Int = 10, offset: Int = 0): List<ApexClass> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
         val classes = if (name.isNullOrBlank()) {
@@ -187,6 +188,7 @@ class SalesforceMetadataService(
         return classes
     }
 
+    @Cacheable(value = ["sf_metadata"], key = "'search_triggers_' + #name + '_' + #limit + '_' + #offset", unless = "#result == null")
     fun searchTriggers(name: String?, limit: Int = 10, offset: Int = 0): List<ApexTrigger> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
         val triggers = if (name.isNullOrBlank()) {
@@ -203,6 +205,7 @@ class SalesforceMetadataService(
         return triggers
     }
 
+    @Cacheable(value = ["sf_metadata"], key = "'search_debug_levels_' + #name + '_' + #limit + '_' + #offset", unless = "#result == null")
     fun searchDebugLevels(name: String?, limit: Int = 10, offset: Int = 0): List<DebugLevel> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("developerName").ascending())
         val levels = if (name.isNullOrBlank()) {

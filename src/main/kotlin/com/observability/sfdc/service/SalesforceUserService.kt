@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestTemplate
+import org.springframework.web.util.UriComponentsBuilder
 
 @Service
 class SalesforceUserService(
@@ -62,6 +63,7 @@ class SalesforceUserService(
         }
     }
 
+    @Cacheable(value = ["sf_users"], key = "'search_users_' + #name + '_' + #limit + '_' + #offset", unless = "#result == null")
     fun searchUsers(name: String?, limit: Int = 10, offset: Int = 0): List<User> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
         val users = if (name.isNullOrBlank()) {
