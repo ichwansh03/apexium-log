@@ -89,7 +89,6 @@ class SalesforceLogService(
         return classRegex.find(body)?.groupValues?.get(1)
     }
 
-    @Cacheable(value = ["sf_logs_body"], key = "#logId", unless = "#result == null")
     fun getLogBody(logId: String): String? {
         val tokenResponse = authService.getAccessToken() ?: return null
         
