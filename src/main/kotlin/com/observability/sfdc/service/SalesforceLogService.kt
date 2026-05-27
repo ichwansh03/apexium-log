@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.*
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.util.UriComponentsBuilder
@@ -17,9 +18,9 @@ import java.time.format.DateTimeFormatter
 class SalesforceLogService(
     private val authService: SalesforceAuthService,
     private val debugLevelRepository: DebugLevelRepository,
-    @Value($$"${salesforce.api-version}") private val apiVersion: String
+    @Value("${salesforce.api-version}") private val apiVersion: String
 ) {
-    private val restTemplate = RestTemplate()
+    private val restTemplate = RestTemplate(JdkClientHttpRequestFactory())
     private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
     fun queryApexLogs(limit: Int = 10, offset: Int = 0): List<ApexLogDto> {
@@ -200,6 +201,29 @@ class SalesforceLogService(
             restTemplate.exchange(url, HttpMethod.DELETE, entity, Unit::class.java).statusCode.is2xxSuccessful
         } catch (e: Exception) {
             println("Error deleting TraceFlag $id: ${e.message}")
+            false
+        }
+    }
+
+    fun patchTraceFlag(id: String, expirationDate: String): Boolean {
+        val tokenResponse = authService.getAccessToken() ?: return false
+        
+        val baseUrl = tokenResponse.instanceUrl
+        val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag/$id"
+
+        val headers = HttpHeaders()
+        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.contentType = MediaType.APPLICATION_JSON
+        
+        val body = mapOf("ExpirationDate" to expirationDate)
+        val entity = HttpEntity(body, headers)
+        
+        return try {
+            // Note: RestTemplate requires a specific RequestFactory (like Apache HttpClient) to support PATCH.
+            // If this fails with "Invalid HTTP method: PATCH", we will need to update the configuration.
+            restTemplate.exchange(url, HttpMethod.PATCH, entity, Unit::class.java).statusCode.is2xxSuccessful
+        } catch (e: Exception) {
+            println("Error patching TraceFlag $id: ${e.message}")
             false
         }
     }

@@ -1,12 +1,11 @@
 package com.observability.sfdc.controller
 
 import com.observability.sfdc.domain.Log
-import com.observability.sfdc.dto.ApexLogDto
-import com.observability.sfdc.dto.FrontendTraceFlagRequest
-import com.observability.sfdc.dto.SalesforceCreateResponse
-import com.observability.sfdc.dto.TraceFlagDto
+import com.observability.sfdc.domain.TraceJob
+import com.observability.sfdc.dto.*
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.SalesforceLogService
+import com.observability.sfdc.service.TraceJobService
 import jakarta.validation.Valid
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -18,7 +17,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/sfdc/logs")
 class SalesforceLogController(
     private val logService: SalesforceLogService,
-    private val logRepository: LogRepository
+    private val logRepository: LogRepository,
+    private val traceJobService: TraceJobService
 ) {
 
     @GetMapping
@@ -68,5 +68,23 @@ class SalesforceLogController(
     fun deleteTraceFlag(@PathVariable id: String): ResponseEntity<Unit> {
         val deleted = logService.deleteTraceFlag(id)
         return if (deleted) ResponseEntity.ok().build() else ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+    }
+
+    // --- Trace Job Endpoints ---
+
+    @PostMapping("/trace-jobs")
+    fun createTraceJob(@Valid @RequestBody request: FrontendTraceFlagRequest): TraceJob {
+        return traceJobService.createJob(request)
+    }
+
+    @GetMapping("/trace-jobs")
+    fun getTraceJobs(): List<TraceJob> {
+        return traceJobService.getAllJobs()
+    }
+
+    @DeleteMapping("/trace-jobs/{id}")
+    fun cancelTraceJob(@PathVariable id: Long): ResponseEntity<Unit> {
+        traceJobService.cancelJob(id)
+        return ResponseEntity.ok().build()
     }
 }
