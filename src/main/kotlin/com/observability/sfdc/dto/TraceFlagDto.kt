@@ -36,12 +36,21 @@ data class FrontendTraceFlagRequest(
     @field:NotBlank(message = "DebugLevelName is required")
     val debugLevelName: String,
     
-    @field:NotNull(message = "DurationMinutes is required")
-    @field:Min(value = 1, message = "Duration must be at least 1 minute")
-    val durationMinutes: Int,
+    @field:Min(value = 0, message = "Duration days must be non-negative")
+    val durationDays: Int = 0,
+
+    @field:Min(value = 0, message = "Duration hours must be non-negative")
+    val durationHours: Int = 0,
+
+    @field:Min(value = 0, message = "Duration minutes must be non-negative")
+    val durationMinutes: Int = 0,
     
     val entityType: String? = "User"
-)
+) {
+    fun getTotalMinutes(): Long {
+        return (durationDays.toLong() * 24 * 60) + (durationHours.toLong() * 60) + durationMinutes.toLong()
+    }
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SalesforceCreateResponse(

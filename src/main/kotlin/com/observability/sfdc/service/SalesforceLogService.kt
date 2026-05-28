@@ -124,6 +124,8 @@ class SalesforceLogService(
             ?: return SalesforceCreateResponse(id = null, success = false, errors = listOf("DebugLevel '${frontendRequest.debugLevelName}' not found. Please sync metadata first."))
 
         val expirationDate = ZonedDateTime.now(ZoneId.of("UTC"))
+            .plusDays(frontendRequest.durationDays.toLong())
+            .plusHours(frontendRequest.durationHours.toLong())
             .plusMinutes(frontendRequest.durationMinutes.toLong())
             .format(sfdcFormatter)
 
