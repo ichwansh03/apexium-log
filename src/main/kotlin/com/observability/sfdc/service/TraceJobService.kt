@@ -21,8 +21,15 @@ class TraceJobService(
 
     @Transactional
     fun createJob(request: FrontendTraceFlagRequest): TraceJob {
+        val totalMinutes = request.getTotalMinutes()
+        if (totalMinutes <= 0) {
+            throw IllegalArgumentException("Total duration must be at least 1 minute")
+        }
+
         val startTime = LocalDateTime.now()
-        val endTime = startTime.plusMinutes(request.durationMinutes.toLong())
+        val endTime = startTime.plusDays(request.durationDays.toLong())
+            .plusHours(request.durationHours.toLong())
+            .plusMinutes(request.durationMinutes.toLong())
         
         val job = TraceJob(
             tracedEntityId = request.tracedEntityId,
