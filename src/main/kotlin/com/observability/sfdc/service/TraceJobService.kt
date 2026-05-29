@@ -27,9 +27,9 @@ class TraceJobService(
         }
 
         val startTime = LocalDateTime.now()
-        val endTime = startTime.plusDays(request.durationDays.toLong())
-            .plusHours(request.durationHours.toLong())
-            .plusMinutes(request.durationMinutes.toLong())
+        val endTime = startTime.plusDays((request.durationDays ?: 0).toLong())
+            .plusHours((request.durationHours ?: 0).toLong())
+            .plusMinutes((request.durationMinutes ?: 0).toLong())
         
         val job = TraceJob(
             tracedEntityId = request.tracedEntityId,
