@@ -75,6 +75,11 @@ class SalesforceLogService(
                 return fullPath.substringAfterLast("/")
             }
 
+            // Handle Internal Triggers: __sfdc_trigger/TriggerName -> extract TriggerName
+            if (fullPath.startsWith("__sfdc_trigger/")) {
+                return fullPath.substringAfter("/")
+            }
+
             // Handle Triggers: TriggerName on SObject -> keep full trigger context
             if (fullPath.contains(" on ", ignoreCase = true)) {
                 return fullPath
@@ -124,9 +129,9 @@ class SalesforceLogService(
             ?: return SalesforceCreateResponse(id = null, success = false, errors = listOf("DebugLevel '${frontendRequest.debugLevelName}' not found. Please sync metadata first."))
 
         val expirationDate = ZonedDateTime.now(ZoneId.of("UTC"))
-            .plusDays(frontendRequest.durationDays.toLong())
-            .plusHours(frontendRequest.durationHours.toLong())
-            .plusMinutes(frontendRequest.durationMinutes.toLong())
+            .plusDays((frontendRequest.durationDays ?: 0).toLong())
+            .plusHours((frontendRequest.durationHours ?: 0).toLong())
+            .plusMinutes((frontendRequest.durationMinutes ?: 0).toLong())
             .format(sfdcFormatter)
 
         val logType = when (frontendRequest.entityType) {

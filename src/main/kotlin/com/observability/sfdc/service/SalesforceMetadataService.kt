@@ -24,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.util.UriComponentsBuilder
 
+import org.slf4j.LoggerFactory
+
 @Service
 class SalesforceMetadataService(
     private val authService: SalesforceAuthService,
@@ -33,6 +35,7 @@ class SalesforceMetadataService(
     @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
+    private val logger = LoggerFactory.getLogger(SalesforceMetadataService::class.java)
 
     @Cacheable(value = ["sf_metadata"], key = "'debug_levels_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
@@ -63,16 +66,19 @@ class SalesforceMetadataService(
             syncDebugLevelsToDatabase(records)
             records
         } catch (e: Exception) {
-            println("Error querying DebugLevels: ${e.message}")
+            logger.error("Error querying DebugLevels: ${e.message}", e)
             emptyList()
         }
     }
 
     private fun syncDebugLevelsToDatabase(dtos: List<DebugLevelDto>) {
-        dtos.forEach { dto ->
+        // Filter to unique IDs in case SF returns duplicates (unlikely but safe)
+        dtos.distinctBy { it.id }.forEach { dto ->
             val existing = debugLevelRepository.findBySfdcId(dto.id)
-            val debugLevel = if (existing.isPresent) {
-                existing.get().copy(
+            if (existing.isPresent) {
+                val current = existing.get()
+                logger.debug("Updating existing DebugLevel: {} ({})", dto.developerName, dto.id)
+                val updated = current.copy(
                     developerName = dto.developerName,
                     masterLabel = dto.masterLabel,
                     apexCode = dto.apexCode,
@@ -84,8 +90,10 @@ class SalesforceMetadataService(
                     visualforce = dto.visualforce,
                     workflow = dto.workflow
                 )
+                debugLevelRepository.save(updated)
             } else {
-                DebugLevel(
+                logger.debug("Creating new DebugLevel: {} ({})", dto.developerName, dto.id)
+                val debugLevel = DebugLevel(
                     sfdcId = dto.id,
                     developerName = dto.developerName,
                     masterLabel = dto.masterLabel,
@@ -98,8 +106,12 @@ class SalesforceMetadataService(
                     visualforce = dto.visualforce,
                     workflow = dto.workflow
                 )
+                try {
+                    debugLevelRepository.save(debugLevel)
+                } catch (e: Exception) {
+                    logger.error("Failed to save new DebugLevel {}: {}", dto.id, e.message)
+                }
             }
-            debugLevelRepository.save(debugLevel)
         }
     }
 
@@ -232,10 +244,11 @@ class SalesforceMetadataService(
     }
 
     private fun syncClassesToDatabase(dtos: List<ApexClassDto>) {
-        dtos.forEach { dto ->
+        dtos.distinctBy { it.id }.forEach { dto ->
             val existing = classRepository.findBySfdcId(dto.id)
-            val apexClass = if (existing.isPresent) {
-                existing.get().copy(
+            if (existing.isPresent) {
+                val current = existing.get()
+                val updated = current.copy(
                     name = dto.name,
                     apiVersion = dto.apiVersion,
                     status = dto.status,
@@ -245,8 +258,9 @@ class SalesforceMetadataService(
                     createdDate = dto.createdDate,
                     createdByName = dto.createdBy?.name
                 )
+                classRepository.save(updated)
             } else {
-                ApexClass(
+                val apexClass = ApexClass(
                     sfdcId = dto.id,
                     name = dto.name,
                     apiVersion = dto.apiVersion,
@@ -257,16 +271,21 @@ class SalesforceMetadataService(
                     createdDate = dto.createdDate,
                     createdByName = dto.createdBy?.name
                 )
+                try {
+                    classRepository.save(apexClass)
+                } catch (e: Exception) {
+                    logger.error("Failed to save new ApexClass {}: {}", dto.id, e.message)
+                }
             }
-            classRepository.save(apexClass)
         }
     }
 
     private fun syncTriggersToDatabase(dtos: List<ApexTriggerDto>) {
-        dtos.forEach { dto ->
+        dtos.distinctBy { it.id }.forEach { dto ->
             val existing = triggerRepository.findBySfdcId(dto.id)
-            val trigger = if (existing.isPresent) {
-                existing.get().copy(
+            if (existing.isPresent) {
+                val current = existing.get()
+                val updated = current.copy(
                     name = dto.name,
                     sobject = dto.tableEnumOrId,
                     apiVersion = dto.apiVersion,
@@ -282,8 +301,9 @@ class SalesforceMetadataService(
                     createdDate = dto.createdDate,
                     createdByName = dto.createdBy?.name
                 )
+                triggerRepository.save(updated)
             } else {
-                ApexTrigger(
+                val trigger = ApexTrigger(
                     sfdcId = dto.id,
                     name = dto.name,
                     sobject = dto.tableEnumOrId,
@@ -300,8 +320,12 @@ class SalesforceMetadataService(
                     createdDate = dto.createdDate,
                     createdByName = dto.createdBy?.name
                 )
+                try {
+                    triggerRepository.save(trigger)
+                } catch (e: Exception) {
+                    logger.error("Failed to save new ApexTrigger {}: {}", dto.id, e.message)
+                }
             }
-            triggerRepository.save(trigger)
         }
     }
 }

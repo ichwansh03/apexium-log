@@ -23,8 +23,8 @@ class FrontendTraceFlagRequestTest {
         val request2 = FrontendTraceFlagRequest(
             tracedEntityId = "testId",
             debugLevelName = "testLevel",
-            durationDays = 0,
-            durationHours = 0,
+            durationDays = null,
+            durationHours = null,
             durationMinutes = 45
         )
         assertEquals(45L, request2.getTotalMinutes())
@@ -34,7 +34,7 @@ class FrontendTraceFlagRequestTest {
             debugLevelName = "testLevel",
             durationDays = 0,
             durationHours = 5,
-            durationMinutes = 0
+            durationMinutes = null
         )
         assertEquals(300L, request3.getTotalMinutes())
     }

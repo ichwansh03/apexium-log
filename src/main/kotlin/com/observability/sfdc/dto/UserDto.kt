@@ -13,7 +13,10 @@ data class SalesforceUserDto(
     @JsonProperty("Name")
     @field:NotBlank(message = "Name is required")
     val name: String?,
-    
+
+    @JsonProperty("SFID")
+    val sfdcId: String?,
+
     @JsonProperty("Username")
     val username: String?,
     
