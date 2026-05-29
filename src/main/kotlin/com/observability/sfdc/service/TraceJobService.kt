@@ -33,7 +33,7 @@ class TraceJobService(
         
         val job = TraceJob(
             tracedEntityId = request.tracedEntityId,
-            tracedEntityName = null, // Optional: resolve from SF or pass from FE
+            tracedEntityName = request.tracedEntityName,
             tracedEntityType = request.entityType ?: "User",
             debugLevelName = request.debugLevelName,
             startTime = startTime,

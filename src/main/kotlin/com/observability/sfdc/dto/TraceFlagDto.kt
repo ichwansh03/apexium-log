@@ -32,10 +32,11 @@ data class TraceFlagRequest(
 data class FrontendTraceFlagRequest(
     @field:NotBlank(message = "TracedEntityId is required")
     val tracedEntityId: String,
-    
+
+    val tracedEntityName: String? = null,
+
     @field:NotBlank(message = "DebugLevelName is required")
     val debugLevelName: String,
-    
     @field:Min(value = 0, message = "Duration days must be non-negative")
     val durationDays: Int? = 0,
 

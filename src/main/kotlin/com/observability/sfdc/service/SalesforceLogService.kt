@@ -75,6 +75,11 @@ class SalesforceLogService(
                 return fullPath.substringAfterLast("/")
             }
 
+            // Handle Internal Triggers: __sfdc_trigger/TriggerName -> extract TriggerName
+            if (fullPath.startsWith("__sfdc_trigger/")) {
+                return fullPath.substringAfter("/")
+            }
+
             // Handle Triggers: TriggerName on SObject -> keep full trigger context
             if (fullPath.contains(" on ", ignoreCase = true)) {
                 return fullPath
