@@ -17,6 +17,8 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
+      minio:
+        condition: service_started
     networks:
       - sfdc-network
 
@@ -50,9 +52,24 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - sfdc-network
+
 networks:
   sfdc-network:
     driver: bridge
 
 volumes:
   postgres_data:
+  minio_data:
