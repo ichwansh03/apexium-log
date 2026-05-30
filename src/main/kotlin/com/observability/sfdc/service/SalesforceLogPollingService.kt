@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
@@ -60,11 +60,11 @@ class SalesforceLogPollingService(
         }
     }
 
-    private fun parseDateTime(startTime: String?): LocalDateTime? {
+    private fun parseDateTime(startTime: String?): Instant? {
         if (startTime == null) return null
         return try {
             // Salesforce format: 2026-05-09T10:00:00.000+0000
-            OffsetDateTime.parse(startTime, dateTimeFormatter).toLocalDateTime()
+            OffsetDateTime.parse(startTime, dateTimeFormatter).toInstant()
         } catch (e: Exception) {
             logger.warn("Failed to parse start time: $startTime. Error: ${e.message}")
             null

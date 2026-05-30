@@ -1,7 +1,7 @@
 package com.observability.sfdc.domain
 
 import jakarta.persistence.*
-import java.time.LocalDateTime
+import java.time.Instant
 
 @Entity
 @Table(name = "logs")
@@ -20,7 +20,7 @@ data class Log(
     val authorName: String? = null,
 
     @Column(name = "request_time")
-    val requestTime: LocalDateTime? = null,
+    val requestTime: Instant? = null,
 
     @Column(name = "operation")
     val operation: String? = null,

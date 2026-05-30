@@ -65,6 +65,7 @@ class MinioService(
             decompress(compressedData)
         } catch (e: Exception) {
             // Log not found or other error - return null to fallback
+            logger.error("Error downloading log $logId to MinIO: ${e.message}")
             null
         }
     }
