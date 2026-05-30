@@ -6,7 +6,8 @@ import com.observability.sfdc.repository.TraceJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
+import java.time.Duration
+import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -26,10 +27,10 @@ class TraceJobService(
             throw IllegalArgumentException("Total duration must be at least 1 minute")
         }
 
-        val startTime = LocalDateTime.now()
-        val endTime = startTime.plusDays((request.durationDays ?: 0).toLong())
-            .plusHours((request.durationHours ?: 0).toLong())
-            .plusMinutes((request.durationMinutes ?: 0).toLong())
+        val startTime = Instant.now()
+        val endTime = startTime.plus(Duration.ofDays((request.durationDays ?: 0).toLong()))
+            .plus(Duration.ofHours((request.durationHours ?: 0).toLong()))
+            .plus(Duration.ofMinutes((request.durationMinutes ?: 0).toLong()))
         
         val job = TraceJob(
             tracedEntityId = request.tracedEntityId,
@@ -64,7 +65,7 @@ class TraceJobService(
     @Transactional
     fun refreshSalesforceTraceFlag(job: TraceJob) {
         val now = ZonedDateTime.now(ZoneId.of("UTC"))
-        val jobEndTime = job.endTime.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+        val jobEndTime = job.endTime.atZone(ZoneId.of("UTC"))
         
         // Salesforce Limit: Expiration must be within 24h of StartDate (or current time if updating)
         // We set it to 23 hours to have a safety buffer for the next sliding window cycle
@@ -73,7 +74,7 @@ class TraceJobService(
         
         if (job.sfdcTraceFlagId == null) {
             // Create NEW
-            val duration = java.time.Duration.between(now, targetExpiry).toMinutes().coerceAtLeast(1).toInt()
+            val duration = Duration.between(now.toInstant(), targetExpiry.toInstant()).toMinutes().coerceAtLeast(1).toInt()
             val response = logService.createTraceFlag(
                 FrontendTraceFlagRequest(
                     tracedEntityId = job.tracedEntityId,

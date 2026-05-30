@@ -4,7 +4,7 @@ import com.observability.sfdc.repository.TraceJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
+import java.time.Instant
 
 @Service
 class TraceJobSchedulerService(
@@ -19,7 +19,7 @@ class TraceJobSchedulerService(
         if (activeJobs.isEmpty()) return
 
         logger.info("Starting Trace Job maintenance cycle for ${activeJobs.size} jobs...")
-        val now = LocalDateTime.now()
+        val now = Instant.now()
 
         activeJobs.forEach { job ->
             try {
