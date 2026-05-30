@@ -23,15 +23,20 @@ class SalesforceLogPollingService(
     fun pollLogs() {
         logger.info("Starting Salesforce log polling cycle...")
         try {
-            val logs = logService.queryApexLogs(limit = 20)
-            logger.info("Retrieved ${logs.size} logs from Salesforce Tooling API.")
+            // Fetch logs without bodies first to check against database
+            val logs = logService.queryApexLogs(limit = 20, fetchBody = false)
+            logger.info("Retrieved ${logs.size} log headers from Salesforce.")
             
             var newLogsCount = 0
             logs.forEach { dto ->
                 if (!logRepository.findBySfdcId(dto.id).isPresent) {
+                    // Fetch body only for new logs (this triggers MinIO upload)
+                    val body = logService.getLogBody(dto.id)
+                    val apexClassName = dto.apexClassName ?: logService.extractClassName(body)
+
                     val log = Log(
                         sfdcId = dto.id,
-                        apexClassName = dto.apexClassName,
+                        apexClassName = apexClassName,
                         authorName = dto.logUser?.name,
                         requestTime = parseDateTime(dto.startTime),
                         operation = dto.operation,
@@ -46,7 +51,7 @@ class SalesforceLogPollingService(
             }
             
             if (newLogsCount > 0) {
-                logger.info("Success: Saved $newLogsCount new logs to PostgreSQL database.")
+                logger.info("Success: Saved $newLogsCount new logs to PostgreSQL and MinIO.")
             } else {
                 logger.info("Poll complete: No new logs found to save.")
             }
