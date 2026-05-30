@@ -18,12 +18,13 @@ import java.time.format.DateTimeFormatter
 class SalesforceLogService(
     private val authService: SalesforceAuthService,
     private val debugLevelRepository: DebugLevelRepository,
+    private val minioService: MinioService,
     @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate(JdkClientHttpRequestFactory())
     private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
-    fun queryApexLogs(limit: Int = 10, offset: Int = 0): List<ApexLogDto> {
+    fun queryApexLogs(limit: Int = 10, offset: Int = 0, fetchBody: Boolean = true): List<ApexLogDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
@@ -48,7 +49,9 @@ class SalesforceLogService(
             )
             val records = response.body?.records ?: emptyList()
             
-            // Enrich records with Apex Class Name by fetching bodies
+            if (!fetchBody) return records
+
+            // Enrich records with Apex Class Name by fetching bodies (will check MinIO first)
             records.map { dto ->
                 val body = getLogBody(dto.id)
                 dto.copy(apexClassName = extractClassName(body))
@@ -59,7 +62,7 @@ class SalesforceLogService(
         }
     }
 
-    private fun extractClassName(body: String?): String? {
+    fun extractClassName(body: String?): String? {
         if (body == null) return null
 
         // Pattern to find the last CODE_UNIT_STARTED or CODE_UNIT_FINISHED which contains the entry point.
@@ -96,6 +99,13 @@ class SalesforceLogService(
     }
 
     fun getLogBody(logId: String): String? {
+        // 1. Try MinIO first
+        val cachedBody = minioService.downloadLog(logId)
+        if (cachedBody != null) {
+            return cachedBody
+        }
+
+        // 2. Fallback to Salesforce Tooling API
         val tokenResponse = authService.getAccessToken() ?: return null
         
         val baseUrl = tokenResponse.instanceUrl
@@ -113,9 +123,16 @@ class SalesforceLogService(
                 entity,
                 String::class.java
             )
-            response.body
+            val body = response.body
+            
+            // 3. Store in MinIO for future use
+            if (body != null) {
+                minioService.uploadLog(logId, body)
+            }
+            
+            body
         } catch (e: Exception) {
-            println("Error fetching log body for $logId: ${e.message}")
+            println("Error fetching log body for $logId from Salesforce: ${e.message}")
             null
         }
     }
