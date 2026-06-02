@@ -54,6 +54,19 @@ class SalesforceLogController(
         return logService.getLogBody(id)
     }
 
+    @GetMapping("/{id}/download-url")
+    fun getLogDownloadUrl(
+        @PathVariable id: String,
+        @RequestParam(required = false) operation: String?
+    ): ResponseEntity<Map<String, String>> {
+        val url = logService.getLogDownloadUrl(id, operation)
+        return if (url != null) {
+            ResponseEntity.ok(mapOf("url" to url))
+        } else {
+            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+        }
+    }
+
     @PostMapping("/trace-flags")
     fun createTraceFlag(@Valid @RequestBody request: FrontendTraceFlagRequest): SalesforceCreateResponse? {
         return logService.createTraceFlag(request)

@@ -137,6 +137,11 @@ class SalesforceLogService(
         }
     }
 
+    fun getLogDownloadUrl(logId: String, operation: String?): String? {
+        val downloadName = "${operation ?: "log"}_$logId"
+        return minioService.generateDownloadUrl(logId, downloadName)
+    }
+
     fun createTraceFlag(frontendRequest: FrontendTraceFlagRequest): SalesforceCreateResponse? {
         val tokenResponse = authService.getAccessToken() ?: return SalesforceCreateResponse(id = null, success = false, errors = listOf("Authentication failed"))
         
