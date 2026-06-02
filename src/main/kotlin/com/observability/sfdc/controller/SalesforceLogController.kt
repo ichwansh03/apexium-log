@@ -54,14 +54,19 @@ class SalesforceLogController(
         return logService.getLogBody(id)
     }
 
-    @GetMapping("/{id}/download-url")
-    fun getLogDownloadUrl(
+    @GetMapping("/{id}/download")
+    fun downloadLog(
         @PathVariable id: String,
         @RequestParam(required = false) operation: String?
-    ): ResponseEntity<Map<String, String>> {
-        val url = logService.getLogDownloadUrl(id, operation)
-        return if (url != null) {
-            ResponseEntity.ok(mapOf("url" to url))
+    ): ResponseEntity<org.springframework.core.io.Resource> {
+        val stream = logService.getLogDownloadStream(id)
+        return if (stream != null) {
+            val downloadName = "${operation ?: "log"}_$id.log.gz"
+            val resource = org.springframework.core.io.InputStreamResource(stream)
+            ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType("application/gzip"))
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$downloadName\"")
+                .body(resource)
         } else {
             ResponseEntity.status(HttpStatus.NOT_FOUND).build()
         }
