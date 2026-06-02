@@ -10,6 +10,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.util.UriComponentsBuilder
+import java.io.InputStream
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -137,9 +138,14 @@ class SalesforceLogService(
         }
     }
 
-    fun getLogDownloadUrl(logId: String, operation: String?): String? {
-        val downloadName = "${operation ?: "log"}_$logId"
-        return minioService.generateDownloadUrl(logId, downloadName)
+    fun getLogDownloadStream(logId: String): InputStream? {
+        // Ensure log exists in MinIO first
+        if (!minioService.exists(logId)) {
+            val body = getLogBody(logId) // This will fetch from SFDC
+            if (body == null) return null
+            minioService.uploadLogSync(logId, body)
+        }
+        return minioService.getDownloadStream(logId)
     }
 
     fun createTraceFlag(frontendRequest: FrontendTraceFlagRequest): SalesforceCreateResponse? {

@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
@@ -35,8 +36,26 @@ class MinioService(
         }
     }
 
+    fun exists(logId: String): Boolean {
+        return try {
+            minioClient.statObject(
+                StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .`object`("$logId.log.gz")
+                    .build()
+            )
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     @Async
     fun uploadLog(logId: String, body: String) {
+        uploadLogSync(logId, body)
+    }
+
+    fun uploadLogSync(logId: String, body: String) {
         try {
             val compressedData = compress(body)
             val inputStream = ByteArrayInputStream(compressedData)
@@ -67,31 +86,21 @@ class MinioService(
             decompress(compressedData)
         } catch (e: Exception) {
             // Log not found or other error - return null to fallback
-            logger.error("Error downloading log $logId to MinIO: ${e.message}")
+            logger.error("Error downloading log $logId from MinIO: ${e.message}")
             null
         }
     }
 
-    /**
-     * Generates a pre-signed URL for direct download from MinIO.
-     * The URL is valid for 15 minutes.
-     */
-    fun generateDownloadUrl(logId: String, downloadName: String): String? {
+    fun getDownloadStream(logId: String): InputStream? {
         return try {
-            minioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
+            minioClient.getObject(
+                GetObjectArgs.builder()
                     .bucket(bucketName)
                     .`object`("$logId.log.gz")
-                    .expiry(15, TimeUnit.MINUTES)
-                    .extraQueryParams(mapOf(
-                        "response-content-disposition" to "attachment; filename=\"$downloadName.log.gz\"",
-                        "response-content-type" to "application/gzip"
-                    ))
                     .build()
             )
         } catch (e: Exception) {
-            logger.error("Failed to generate pre-signed URL for $logId: ${e.message}")
+            logger.error("Failed to get stream for $logId: ${e.message}")
             null
         }
     }
