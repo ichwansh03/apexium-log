@@ -1,12 +1,14 @@
 package com.observability.sfdc.service
 
 import io.minio.*
+import io.minio.http.Method
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
@@ -66,6 +68,30 @@ class MinioService(
         } catch (e: Exception) {
             // Log not found or other error - return null to fallback
             logger.error("Error downloading log $logId to MinIO: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Generates a pre-signed URL for direct download from MinIO.
+     * The URL is valid for 15 minutes.
+     */
+    fun generateDownloadUrl(logId: String, downloadName: String): String? {
+        return try {
+            minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)
+                    .bucket(bucketName)
+                    .`object`("$logId.log.gz")
+                    .expiry(15, TimeUnit.MINUTES)
+                    .extraQueryParams(mapOf(
+                        "response-content-disposition" to "attachment; filename=\"$downloadName.log.gz\"",
+                        "response-content-type" to "application/gzip"
+                    ))
+                    .build()
+            )
+        } catch (e: Exception) {
+            logger.error("Failed to generate pre-signed URL for $logId: ${e.message}")
             null
         }
     }
