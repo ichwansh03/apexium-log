@@ -90,6 +90,10 @@ graph TD
 3.  **Run Application**: Ensure your local database (PostgreSQL) and Redis are running, then start the application using Maven.
 4.  **Reference**: See [SKILL.md](./SKILL.md) for detailed implementation snippets and API references.
 
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
 ## License
 
 MIT License
