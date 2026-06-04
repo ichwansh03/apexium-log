@@ -37,13 +37,20 @@ class SalesforceMetadataService(
     private val restTemplate = RestTemplate()
     private val logger = LoggerFactory.getLogger(SalesforceMetadataService::class.java)
 
-    @Cacheable(value = ["sf_metadata"], key = "'debug_levels_' + #limit + '_' + #offset", unless = "#result == null")
+    @Cacheable(value = ["sf_metadata"], key = "'debug_levels_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
-    fun getAllDebugLevels(limit: Int = 10, offset: Int = 0): List<DebugLevelDto> {
+    fun getAllDebugLevels(name: String? = null, limit: Int = 10, offset: Int = 0): List<DebugLevelDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, DeveloperName, MasterLabel, ApexCode, ApexProfiling, Callout, Database, System, Validation, Visualforce, Workflow FROM DebugLevel LIMIT $limit OFFSET $offset"
+        var query = "SELECT Id, DeveloperName, MasterLabel, ApexCode, ApexProfiling, Callout, Database, System, Validation, Visualforce, Workflow FROM DebugLevel "
+        
+        if (!name.isNullOrBlank()) {
+            val escapedName = name.replace("'", "\\'")
+            query += "WHERE DeveloperName LIKE '%$escapedName%' OR MasterLabel LIKE '%$escapedName%' "
+        }
+        
+        query += "LIMIT $limit OFFSET $offset"
         
         val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
@@ -71,6 +78,7 @@ class SalesforceMetadataService(
         }
     }
 
+    @Transactional
     private fun syncDebugLevelsToDatabase(dtos: List<DebugLevelDto>) {
         // Filter to unique IDs in case SF returns duplicates (unlikely but safe)
         dtos.distinctBy { it.id }.forEach { dto ->
@@ -115,13 +123,20 @@ class SalesforceMetadataService(
         }
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'apex_classes_' + #limit + '_' + #offset", unless = "#result == null")
+    @Cacheable(value = ["sf_metadata"], key = "'apex_classes_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
-    fun getAllApexClasses(limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
+    fun getAllApexClasses(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, Name, ApiVersion, Status, LengthWithoutComments, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexClass WHERE Status = 'Active' AND (NOT Name LIKE '%Test') AND (NOT Name LIKE 'Test%') AND (NOT Name LIKE '%Tests') AND (NOT Name LIKE '%Mock') AND (NOT Name LIKE '%Factory') ORDER BY Name ASC LIMIT $limit OFFSET $offset"
+        var query = "SELECT Id, Name, ApiVersion, Status, LengthWithoutComments, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexClass WHERE Status = 'Active' "
+        
+        if (!name.isNullOrBlank()) {
+            val escapedName = name.replace("'", "\\'")
+            query += "AND Name LIKE '%$escapedName%' "
+        }
+        
+        query += "AND (NOT Name LIKE '%Test') AND (NOT Name LIKE 'Test%') AND (NOT Name LIKE '%Tests') AND (NOT Name LIKE '%Mock') AND (NOT Name LIKE '%Factory') ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
@@ -149,13 +164,20 @@ class SalesforceMetadataService(
         }
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'apex_triggers_' + #limit + '_' + #offset", unless = "#result == null")
+    @Cacheable(value = ["sf_metadata"], key = "'apex_triggers_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
-    fun getAllApexTriggers(limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> {
+    fun getAllApexTriggers(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexTrigger WHERE Status = 'Active' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
+        var query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexTrigger WHERE Status = 'Active' "
+        
+        if (!name.isNullOrBlank()) {
+            val escapedName = name.replace("'", "\\'")
+            query += "AND Name LIKE '%$escapedName%' "
+        }
+        
+        query += "ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
@@ -183,66 +205,58 @@ class SalesforceMetadataService(
         }
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'search_classes_' + (#name ?: 'null') + '_' + #limit + '_' + #offset", unless = "#result == null || #result.isEmpty()")
     fun searchClasses(name: String?, limit: Int = 10, offset: Int = 0): List<ApexClass> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
-        var classes = if (name.isNullOrBlank()) {
+        
+        // Sync with Salesforce if a name is provided or if the database is empty
+        if (!name.isNullOrBlank()) {
+            getAllApexClasses(name = name, limit = 200)
+        } else if (classRepository.count() == 0L) {
+            getAllApexClasses(limit = 200)
+        }
+        
+        return if (name.isNullOrBlank()) {
             classRepository.findAllProjectedBy(pageable)
         } else {
             classRepository.findByNameContainingIgnoreCase(name, pageable)
         }
-        
-        if (classes.isEmpty() && name.isNullOrBlank()) {
-            // SYNC fetch if DB is empty on first load
-            val sfClasses = getAllApexClasses(limit = 100)
-            if (sfClasses.isNotEmpty()) {
-                classes = classRepository.findAllProjectedBy(pageable)
-            }
-        }
-        
-        return classes
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'search_triggers_' + (#name ?: 'null') + '_' + #limit + '_' + #offset", unless = "#result == null || #result.isEmpty()")
     fun searchTriggers(name: String?, limit: Int = 10, offset: Int = 0): List<ApexTrigger> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
-        var triggers = if (name.isNullOrBlank()) {
+        
+        // Sync with Salesforce if a name is provided or if the database is empty
+        if (!name.isNullOrBlank()) {
+            getAllApexTriggers(name = name, limit = 200)
+        } else if (triggerRepository.count() == 0L) {
+            getAllApexTriggers(limit = 200)
+        }
+        
+        return if (name.isNullOrBlank()) {
             triggerRepository.findAllProjectedBy(pageable)
         } else {
             triggerRepository.findByNameContainingIgnoreCaseOrSobjectContainingIgnoreCase(name, name, pageable)
         }
-        
-        if (triggers.isEmpty() && name.isNullOrBlank()) {
-            // SYNC fetch if DB is empty on first load
-            val sfTriggers = getAllApexTriggers(limit = 100)
-            if (sfTriggers.isNotEmpty()) {
-                triggers = triggerRepository.findAllProjectedBy(pageable)
-            }
-        }
-        
-        return triggers
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'search_debug_levels_' + (#name ?: 'null') + '_' + #limit + '_' + #offset", unless = "#result == null || #result.isEmpty()")
     fun searchDebugLevels(name: String?, limit: Int = 10, offset: Int = 0): List<DebugLevel> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("developerName").ascending())
-        var levels = if (name.isNullOrBlank()) {
+        
+        // Sync with Salesforce if a name is provided or if the database is empty
+        if (!name.isNullOrBlank()) {
+            getAllDebugLevels(name = name, limit = 200)
+        } else if (debugLevelRepository.count() == 0L) {
+            getAllDebugLevels(limit = 200)
+        }
+        
+        return if (name.isNullOrBlank()) {
             debugLevelRepository.findAllProjectedBy(pageable)
         } else {
             debugLevelRepository.findByDeveloperNameContainingIgnoreCaseOrMasterLabelContainingIgnoreCase(name, name, pageable)
         }
-        
-        if (levels.isEmpty() && name.isNullOrBlank()) {
-            // SYNC fetch if DB is empty on first load
-            val sfLevels = getAllDebugLevels(limit = 100)
-            if (sfLevels.isNotEmpty()) {
-                levels = debugLevelRepository.findAllProjectedBy(pageable)
-            }
-        }
-        
-        return levels
     }
 
+    @Transactional
     private fun syncClassesToDatabase(dtos: List<ApexClassDto>) {
         dtos.distinctBy { it.id }.forEach { dto ->
             val existing = classRepository.findBySfdcId(dto.id)
@@ -280,6 +294,7 @@ class SalesforceMetadataService(
         }
     }
 
+    @Transactional
     private fun syncTriggersToDatabase(dtos: List<ApexTriggerDto>) {
         dtos.distinctBy { it.id }.forEach { dto ->
             val existing = triggerRepository.findBySfdcId(dto.id)
