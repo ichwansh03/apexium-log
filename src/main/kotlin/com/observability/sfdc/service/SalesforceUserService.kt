@@ -26,13 +26,20 @@ class SalesforceUserService(
 ) {
     private val restTemplate = RestTemplate()
 
-    @Cacheable(value = ["sf_users"], key = "'all_users_' + #limit + '_' + #offset", unless = "#result == null")
+    @Cacheable(value = ["sf_users"], key = "'all_users_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
-    fun getAllUsers(limit: Int = 10, offset: Int = 0): List<SalesforceUserDto> {
+    fun getAllUsers(name: String? = null, limit: Int = 10, offset: Int = 0): List<SalesforceUserDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl
-        val query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE (IsActive = TRUE AND Entity__c = 'AMFS') OR Name = 'Automated Process' ORDER BY Name ASC LIMIT $limit OFFSET $offset"
+        var query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE ((IsActive = TRUE AND Entity__c = 'AMFS') OR Name = 'Automated Process') "
+        
+        if (!name.isNullOrBlank()) {
+            val escapedName = name.replace("'", "\\'")
+            query += "AND Name LIKE '%$escapedName%' "
+        }
+        
+        query += "ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/query")
             .queryParam("q", query)
@@ -63,35 +70,30 @@ class SalesforceUserService(
         }
     }
 
-    @Cacheable(value = ["sf_users"], key = "'search_users_' + (#name ?: 'null') + '_' + #limit + '_' + #offset", unless = "#result == null || #result.isEmpty()")
     fun searchUsers(name: String?, limit: Int = 10, offset: Int = 0): List<User> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
         
-        // 1. Check local database
-        var users = if (name.isNullOrBlank()) {
+        // Sync with Salesforce if a name is provided or if the database is empty
+        if (!name.isNullOrBlank()) {
+            getAllUsers(name = name, limit = 200)
+        } else if (userRepository.count() == 0L) {
+            getAllUsers(limit = 200)
+        }
+        
+        return if (name.isNullOrBlank()) {
             userRepository.findAllProjectedBy(pageable)
         } else {
             userRepository.findByNameContainingIgnoreCase(name, pageable)
         }
-        
-        // 2. If first load (empty DB and no search query), sync from Tooling API synchronously
-        if (users.isEmpty() && name.isNullOrBlank()) {
-            // SYNC fetch and save to DB
-            val sfUsers = getAllUsers(limit = 100)
-            if (sfUsers.isNotEmpty()) {
-                // Re-query database to get domain objects after sync
-                users = userRepository.findAllProjectedBy(pageable)
-            }
-        }
-        
-        return users
     }
 
+    @Transactional
     private fun syncUsersToDatabase(dtos: List<SalesforceUserDto>) {
         dtos.forEach { dto ->
             val existing = userRepository.findBySfdcId(dto.id)
             val user = if (existing.isPresent) {
-                existing.get().copy(
+                val current = existing.get()
+                current.copy(
                     name = dto.name,
                     username = dto.username,
                     email = dto.email,
@@ -110,7 +112,11 @@ class SalesforceUserService(
                     entity = dto.entity
                 )
             }
-            userRepository.save(user)
+            try {
+                userRepository.save(user)
+            } catch (e: Exception) {
+                println("Failed to save user ${dto.id}: ${e.message}")
+            }
         }
     }
 }

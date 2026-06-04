@@ -20,7 +20,7 @@ class SalesforceUserController(
         @RequestParam(defaultValue = "0") page: Int
     ): List<SalesforceUserDto> {
         val offset = page * size
-        return userService.getAllUsers(size, offset)
+        return userService.getAllUsers(limit = size, offset = offset)
     }
 
     @GetMapping("/db")

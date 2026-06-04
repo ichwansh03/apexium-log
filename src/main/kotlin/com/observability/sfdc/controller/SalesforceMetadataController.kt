@@ -23,7 +23,7 @@ class SalesforceMetadataController(
         @RequestParam(defaultValue = "0") page: Int
     ): List<DebugLevelDto> {
         val offset = page * size
-        return metadataService.getAllDebugLevels(size, offset)
+        return metadataService.getAllDebugLevels(limit = size, offset = offset)
     }
 
     @GetMapping("/debug-levels/db")
@@ -42,7 +42,7 @@ class SalesforceMetadataController(
         @RequestParam(defaultValue = "0") page: Int
     ): List<ApexClassDto> {
         val offset = page * size
-        return metadataService.getAllApexClasses(size, offset)
+        return metadataService.getAllApexClasses(limit = size, offset = offset)
     }
 
     @GetMapping("/classes/db")
@@ -61,7 +61,7 @@ class SalesforceMetadataController(
         @RequestParam(defaultValue = "0") page: Int
     ): List<ApexTriggerDto> {
         val offset = page * size
-        return metadataService.getAllApexTriggers(size, offset)
+        return metadataService.getAllApexTriggers(limit = size, offset = offset)
     }
 
     @GetMapping("/triggers/db")
