@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.observability</groupId>
-	<artifactId>apexium.id</artifactId>
+	<artifactId>apexium.log</artifactId>
 	<version>1.0.0</version>
 	<name/>
 	<description/>

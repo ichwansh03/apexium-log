@@ -1,6 +1,6 @@
-# Contributing to Apexium.id
+# Contributing to Apexium.log
 
-First off, thank you for considering contributing to Apexium.id! It's people like you that make this tool better for everyone.
+First off, thank you for considering contributing to Apexium.log! It's people like you that make this tool better for everyone.
 
 ## Code of Conduct
 
