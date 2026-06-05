@@ -1,6 +1,6 @@
-# Contributing to Salesforce Observable Logging System
+# Contributing to Apexium.id
 
-First off, thank you for considering contributing to the Salesforce Observable Logging System! It's people like you that make this tool better for everyone.
+First off, thank you for considering contributing to Apexium.id! It's people like you that make this tool better for everyone.
 
 ## Code of Conduct
 
