@@ -22,7 +22,7 @@ import org.springframework.web.util.UriComponentsBuilder
 class SalesforceUserService(
     private val authService: SalesforceAuthService,
     private val userRepository: UserRepository,
-    @Value("\${salesforce.api-version}") private val apiVersion: String
+    @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
     private val restTemplate = RestTemplate()
 
