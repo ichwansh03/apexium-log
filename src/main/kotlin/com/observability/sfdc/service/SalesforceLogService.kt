@@ -141,8 +141,7 @@ class SalesforceLogService(
     fun getLogDownloadStream(logId: String): InputStream? {
         // Ensure log exists in MinIO first
         if (!minioService.exists(logId)) {
-            val body = getLogBody(logId) // This will fetch from SFDC
-            if (body == null) return null
+            val body = getLogBody(logId) ?: return null // This will fetch from SFDC
             minioService.uploadLogSync(logId, body)
         }
         return minioService.getDownloadStream(logId)
@@ -181,7 +180,7 @@ class SalesforceLogService(
         headers.setBearerAuth(tokenResponse.accessToken)
         headers.contentType = MediaType.APPLICATION_JSON
         
-        val entity = HttpEntity<TraceFlagRequest>(sfdcRequest, headers)
+        val entity = HttpEntity(sfdcRequest, headers)
         
         return try {
             restTemplate.postForObject(url, entity, SalesforceCreateResponse::class.java)
