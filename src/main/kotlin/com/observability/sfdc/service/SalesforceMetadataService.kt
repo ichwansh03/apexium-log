@@ -42,7 +42,7 @@ class SalesforceMetadataService(
     fun getAllDebugLevels(name: String? = null, limit: Int = 10, offset: Int = 0): List<DebugLevelDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         var query = "SELECT Id, DeveloperName, MasterLabel, ApexCode, ApexProfiling, Callout, Database, System, Validation, Visualforce, Workflow FROM DebugLevel "
         
         if (!name.isNullOrBlank()) {
@@ -58,7 +58,7 @@ class SalesforceMetadataService(
             .toUri()
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         
         val entity = HttpEntity<Unit>(headers)
         
@@ -128,7 +128,7 @@ class SalesforceMetadataService(
     fun getAllApexClasses(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         var query = "SELECT Id, Name, ApiVersion, Status, LengthWithoutComments, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexClass WHERE Status = 'Active' "
         
         if (!name.isNullOrBlank()) {
@@ -144,7 +144,7 @@ class SalesforceMetadataService(
             .toUri()
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         
         val entity = HttpEntity<Unit>(headers)
         
@@ -169,7 +169,7 @@ class SalesforceMetadataService(
     fun getAllApexTriggers(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         var query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexTrigger WHERE Status = 'Active' "
         
         if (!name.isNullOrBlank()) {
@@ -185,7 +185,7 @@ class SalesforceMetadataService(
             .toUri()
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         
         val entity = HttpEntity<Unit>(headers)
         
