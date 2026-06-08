@@ -46,6 +46,10 @@ class SalesforceAuthService(
 
         return try {
             val response = restTemplate.postForObject(url, request, SalesforceTokenResponse::class.java)
+            if (response?.accessToken == null || response.instanceUrl == null) {
+                logger.error("Salesforce response missing essential fields: $response")
+                return null
+            }
             logger.info("Successfully authenticated with Salesforce.")
             response
         } catch (e: Exception) {

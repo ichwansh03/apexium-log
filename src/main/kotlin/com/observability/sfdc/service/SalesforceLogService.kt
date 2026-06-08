@@ -3,7 +3,6 @@ package com.observability.sfdc.service
 import com.observability.sfdc.dto.*
 import com.observability.sfdc.repository.DebugLevelRepository
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.*
 import org.springframework.http.client.JdkClientHttpRequestFactory
@@ -28,7 +27,7 @@ class SalesforceLogService(
     fun queryApexLogs(limit: Int = 10, offset: Int = 0, fetchBody: Boolean = true): List<ApexLogDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         val query = "SELECT Id, LogUser.Name, Operation, StartTime, Status, Request, LogLength, DurationMilliseconds FROM ApexLog ORDER BY StartTime DESC LIMIT $limit OFFSET $offset"
         
         val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
@@ -37,7 +36,7 @@ class SalesforceLogService(
             .toUri()
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         
         val entity = HttpEntity<Unit>(headers)
         
@@ -109,11 +108,11 @@ class SalesforceLogService(
         // 2. Fallback to Salesforce Tooling API
         val tokenResponse = authService.getAccessToken() ?: return null
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/ApexLog/$logId/Body"
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         
         val entity = HttpEntity<Unit>(headers)
         
@@ -155,7 +154,9 @@ class SalesforceLogService(
         val debugLevel = debugLevels.find { it.developerName == frontendRequest.debugLevelName || it.masterLabel == frontendRequest.debugLevelName }
             ?: return SalesforceCreateResponse(id = null, success = false, errors = listOf("DebugLevel '${frontendRequest.debugLevelName}' not found. Please sync metadata first."))
 
-        val expirationDate = ZonedDateTime.now(ZoneId.of("UTC"))
+        val now = ZonedDateTime.now(ZoneId.of("UTC"))
+        val startDate = now.format(sfdcFormatter)
+        val expirationDate = now
             .plusDays((frontendRequest.durationDays ?: 0).toLong())
             .plusHours((frontendRequest.durationHours ?: 0).toLong())
             .plusMinutes((frontendRequest.durationMinutes ?: 0).toLong())
@@ -170,14 +171,15 @@ class SalesforceLogService(
             tracedEntityId = frontendRequest.tracedEntityId,
             debugLevelId = debugLevel.sfdcId,
             logType = logType,
+            startDate = startDate,
             expirationDate = expirationDate
         )
 
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag"
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         headers.contentType = MediaType.APPLICATION_JSON
         
         val entity = HttpEntity(sfdcRequest, headers)
@@ -193,7 +195,7 @@ class SalesforceLogService(
     fun getActiveTraceFlags(): List<TraceFlagDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         val query = "SELECT Id, TracedEntityId, TracedEntity.Name, StartDate, ExpirationDate, DebugLevelId, DebugLevel.DeveloperName FROM TraceFlag WHERE ExpirationDate > ${ZonedDateTime.now(ZoneId.of("UTC")).format(sfdcFormatter)}"
         
         val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
@@ -202,7 +204,7 @@ class SalesforceLogService(
             .toUri()
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         
         val entity = HttpEntity<Unit>(headers)
         
@@ -223,11 +225,11 @@ class SalesforceLogService(
     fun deleteTraceFlag(id: String): Boolean {
         val tokenResponse = authService.getAccessToken() ?: return false
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag/$id"
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         
         val entity = HttpEntity<Unit>(headers)
         
@@ -239,17 +241,20 @@ class SalesforceLogService(
         }
     }
 
-    fun patchTraceFlag(id: String, expirationDate: String): Boolean {
+    fun patchTraceFlag(id: String, startDate: String, expirationDate: String): Boolean {
         val tokenResponse = authService.getAccessToken() ?: return false
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag/$id"
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         headers.contentType = MediaType.APPLICATION_JSON
         
-        val body = mapOf("ExpirationDate" to expirationDate)
+        val body = mapOf(
+            "StartDate" to startDate,
+            "ExpirationDate" to expirationDate
+        )
         val entity = HttpEntity(body, headers)
         
         return try {

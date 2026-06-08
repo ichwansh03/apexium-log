@@ -31,7 +31,7 @@ class SalesforceUserService(
     fun getAllUsers(name: String? = null, limit: Int = 10, offset: Int = 0): List<SalesforceUserDto> {
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
-        val baseUrl = tokenResponse.instanceUrl
+        val baseUrl = tokenResponse.instanceUrl!!
         var query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE ((IsActive = TRUE AND Entity__c = 'AMFS') OR Name = 'Automated Process') "
         
         if (!name.isNullOrBlank()) {
@@ -47,7 +47,7 @@ class SalesforceUserService(
             .toUri()
 
         val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken)
+        headers.setBearerAuth(tokenResponse.accessToken!!)
         
         val entity = HttpEntity<Unit>(headers)
         
