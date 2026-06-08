@@ -155,7 +155,9 @@ class SalesforceLogService(
         val debugLevel = debugLevels.find { it.developerName == frontendRequest.debugLevelName || it.masterLabel == frontendRequest.debugLevelName }
             ?: return SalesforceCreateResponse(id = null, success = false, errors = listOf("DebugLevel '${frontendRequest.debugLevelName}' not found. Please sync metadata first."))
 
-        val expirationDate = ZonedDateTime.now(ZoneId.of("UTC"))
+        val now = ZonedDateTime.now(ZoneId.of("UTC"))
+        val startDate = now.format(sfdcFormatter)
+        val expirationDate = now
             .plusDays((frontendRequest.durationDays ?: 0).toLong())
             .plusHours((frontendRequest.durationHours ?: 0).toLong())
             .plusMinutes((frontendRequest.durationMinutes ?: 0).toLong())
@@ -170,6 +172,7 @@ class SalesforceLogService(
             tracedEntityId = frontendRequest.tracedEntityId,
             debugLevelId = debugLevel.sfdcId,
             logType = logType,
+            startDate = startDate,
             expirationDate = expirationDate
         )
 
@@ -239,7 +242,7 @@ class SalesforceLogService(
         }
     }
 
-    fun patchTraceFlag(id: String, expirationDate: String): Boolean {
+    fun patchTraceFlag(id: String, startDate: String, expirationDate: String): Boolean {
         val tokenResponse = authService.getAccessToken() ?: return false
         
         val baseUrl = tokenResponse.instanceUrl
@@ -249,7 +252,10 @@ class SalesforceLogService(
         headers.setBearerAuth(tokenResponse.accessToken)
         headers.contentType = MediaType.APPLICATION_JSON
         
-        val body = mapOf("ExpirationDate" to expirationDate)
+        val body = mapOf(
+            "StartDate" to startDate,
+            "ExpirationDate" to expirationDate
+        )
         val entity = HttpEntity(body, headers)
         
         return try {

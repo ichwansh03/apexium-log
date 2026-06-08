@@ -25,7 +25,7 @@ class SalesforceLogPollingServiceTest {
             ApexLogDto(id = logId2, logUser = UserSummaryDto("User 2"), operation = "Op 2", startTime = "2026-05-09T10:01:00.000+0000", status = "Success", request = "Req 2", logLength = 200, durationMilliseconds = 150)
         )
 
-        `when`(logService.queryApexLogs(limit = 20)).thenReturn(logs)
+        `when`(logService.queryApexLogs(limit = 20, fetchBody = false)).thenReturn(logs)
         `when`(logRepository.findBySfdcId(logId1)).thenReturn(Optional.of(mock(Log::class.java)))
         `when`(logRepository.findBySfdcId(logId2)).thenReturn(Optional.empty())
 

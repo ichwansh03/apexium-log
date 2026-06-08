@@ -67,9 +67,7 @@ class TraceJobService(
         val now = ZonedDateTime.now(ZoneId.of("UTC"))
         val jobEndTime = job.endTime.atZone(ZoneId.of("UTC"))
         
-        // Salesforce Limit: Expiration must be within 24h of StartDate (or current time if updating)
-        // We set it to 23 hours to have a safety buffer for the next sliding window cycle
-        val maxSafeExpiry = now.plusHours(23)
+        val maxSafeExpiry = now.plusDays(1)
         val targetExpiry = if (jobEndTime.isBefore(maxSafeExpiry)) jobEndTime else maxSafeExpiry
         
         if (job.sfdcTraceFlagId == null) {
@@ -92,7 +90,11 @@ class TraceJobService(
             }
         } else {
             // Sliding Window PATCH
-            val success = logService.patchTraceFlag(job.sfdcTraceFlagId!!, targetExpiry.format(sfdcFormatter))
+            val success = logService.patchTraceFlag(
+                job.sfdcTraceFlagId!!,
+                now.format(sfdcFormatter),
+                targetExpiry.format(sfdcFormatter)
+            )
             if (success) {
                 logger.info("Job ${job.id}: Slid window for TraceFlag ${job.sfdcTraceFlagId} to ${targetExpiry.format(sfdcFormatter)}")
             } else {
