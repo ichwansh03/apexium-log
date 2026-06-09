@@ -4,9 +4,10 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "feat/trace-flags" ]
+    branches: [ "main" ]
   schedule:
     - cron: '0 0 * * 0'
+  workflow_dispatch:
 
 jobs:
   analyze:
@@ -20,13 +21,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'java-kotlin' ]
+        language: [ 'java-kotlin', 'javascript-typescript' ]
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set up JDK 21
+      if: matrix.language == 'java-kotlin'
       uses: actions/setup-java@v4
       with:
         java-version: '21'
@@ -37,10 +39,13 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
-        build-mode: manual
+        build-mode: ${{ matrix.language == 'java-kotlin' && 'manual' || 'none' }}
 
     - name: Build with Maven
-      run: mvn clean compile -DskipTests
+      if: matrix.language == 'java-kotlin'
+      run: |
+        chmod +x mvnw
+        ./mvnw clean compile -DskipTests
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
