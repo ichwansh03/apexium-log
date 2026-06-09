@@ -40,6 +40,9 @@ data class ApexTriggerDto(
 
     @JsonProperty("UsageAfterDelete")
     val usageAfterDelete: Boolean?,
+
+    @JsonProperty("UsageAfterUndelete")
+    val usageAfterUndelete: Boolean?,
     
     @JsonProperty("LastModifiedDate")
     val lastModifiedDate: String?,

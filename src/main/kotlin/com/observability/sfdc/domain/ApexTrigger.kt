@@ -22,6 +22,7 @@ data class ApexTrigger(
     val usageAfterInsert: Boolean?,
     val usageAfterUpdate: Boolean?,
     val usageAfterDelete: Boolean?,
+    val usageAfterUndelete: Boolean?,
     val lastModifiedDate: String?,
     val lastModifiedByName: String?,
     val createdDate: String?,

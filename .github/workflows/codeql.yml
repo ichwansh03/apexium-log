@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "feat/trace-flags" ]
   schedule:
     - cron: '0 0 * * 0'
 

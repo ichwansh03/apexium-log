@@ -6,7 +6,9 @@ import com.observability.sfdc.domain.DebugLevel
 import com.observability.sfdc.dto.ApexClassDto
 import com.observability.sfdc.dto.ApexTriggerDto
 import com.observability.sfdc.dto.DebugLevelDto
+import com.observability.sfdc.dto.MetadataDetailDto
 import com.observability.sfdc.dto.SalesforceQueryResult
+import com.observability.sfdc.dto.SalesforceSearchResponse
 import com.observability.sfdc.repository.ApexClassRepository
 import com.observability.sfdc.repository.ApexTriggerRepository
 import com.observability.sfdc.repository.DebugLevelRepository
@@ -170,7 +172,7 @@ class SalesforceMetadataService(
         val tokenResponse = authService.getAccessToken() ?: return emptyList()
         
         val baseUrl = tokenResponse.instanceUrl!!
-        var query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexTrigger WHERE Status = 'Active' "
+        var query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, UsageAfterUndelete, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name FROM ApexTrigger WHERE Status = 'Active' "
         
         if (!name.isNullOrBlank()) {
             val escapedName = name.replace("'", "\\'")
@@ -311,6 +313,7 @@ class SalesforceMetadataService(
                     usageAfterInsert = dto.usageAfterInsert,
                     usageAfterUpdate = dto.usageAfterUpdate,
                     usageAfterDelete = dto.usageAfterDelete,
+                    usageAfterUndelete = dto.usageAfterUndelete,
                     lastModifiedDate = dto.lastModifiedDate,
                     lastModifiedByName = dto.lastModifiedBy?.name,
                     createdDate = dto.createdDate,
@@ -330,6 +333,7 @@ class SalesforceMetadataService(
                     usageAfterInsert = dto.usageAfterInsert,
                     usageAfterUpdate = dto.usageAfterUpdate,
                     usageAfterDelete = dto.usageAfterDelete,
+                    usageAfterUndelete = dto.usageAfterUndelete,
                     lastModifiedDate = dto.lastModifiedDate,
                     lastModifiedByName = dto.lastModifiedBy?.name,
                     createdDate = dto.createdDate,
@@ -342,5 +346,106 @@ class SalesforceMetadataService(
                 }
             }
         }
+    }
+
+    fun getMetadataDetail(id: String, type: String): MetadataDetailDto? {
+        if (type != "ApexClass" && type != "ApexTrigger") {
+            return null
+        }
+        
+        val tokenResponse = authService.getAccessToken() ?: return null
+        val baseUrl = tokenResponse.instanceUrl!!
+        
+        val fields = if (type == "ApexTrigger") {
+            "Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, UsageAfterUndelete, LastModifiedDate, LastModifiedBy.Name"
+        } else {
+            "Id, Name, ApiVersion, Status, LastModifiedDate, LastModifiedBy.Name"
+        }
+        
+        val query = "SELECT $fields FROM $type WHERE Id = '$id'"
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
+            .queryParam("q", query)
+            .build()
+            .toUri()
+
+        val headers = HttpHeaders()
+        headers.setBearerAuth(tokenResponse.accessToken!!)
+        val entity = HttpEntity<Unit>(headers)
+
+        return try {
+            if (type == "ApexTrigger") {
+                val response = restTemplate.exchange(uri, HttpMethod.GET, entity, object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {}).body
+                val trigger = response?.records?.firstOrNull() ?: return null
+                val testClasses = findRelatedTestClasses(trigger.name!!)
+                
+                MetadataDetailDto(
+                    id = trigger.id,
+                    name = trigger.name,
+                    type = "ApexTrigger",
+                    apiVersion = trigger.apiVersion,
+                    status = trigger.status,
+                    lastModifiedDate = trigger.lastModifiedDate,
+                    lastModifiedByName = trigger.lastModifiedBy?.name,
+                    targetObject = trigger.tableEnumOrId,
+                    triggerEvents = mapTriggerEvents(trigger),
+                    testClasses = testClasses
+                )
+            } else {
+                val response = restTemplate.exchange(uri, HttpMethod.GET, entity, object : ParameterizedTypeReference<SalesforceQueryResult<ApexClassDto>>() {}).body
+                val apexClass = response?.records?.firstOrNull() ?: return null
+                val testClasses = findRelatedTestClasses(apexClass.name!!)
+
+                MetadataDetailDto(
+                    id = apexClass.id,
+                    name = apexClass.name,
+                    type = "ApexClass",
+                    apiVersion = apexClass.apiVersion,
+                    status = apexClass.status,
+                    lastModifiedDate = apexClass.lastModifiedDate,
+                    lastModifiedByName = apexClass.lastModifiedBy?.name,
+                    testClasses = testClasses
+                )
+            }
+        } catch (e: Exception) {
+            logger.error("Error fetching metadata detail for $id ($type): ${e.message}")
+            null
+        }
+    }
+
+    private fun findRelatedTestClasses(name: String): List<ApexClassDto> {
+        val tokenResponse = authService.getAccessToken() ?: return emptyList()
+        val baseUrl = tokenResponse.instanceUrl!!
+        
+        // SOSL Query to find classes that mention the metadata in their body
+        val sosl = "FIND {$name} IN ALL FIELDS RETURNING ApexClass (Id, Name, ApiVersion, Status, LastModifiedDate, LastModifiedBy.Name WHERE Name != '$name' AND Status = 'Active')"
+        
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/search")
+            .queryParam("q", sosl)
+            .build()
+            .toUri()
+
+        val headers = HttpHeaders()
+        headers.setBearerAuth(tokenResponse.accessToken!!)
+        val entity = HttpEntity<Unit>(headers)
+
+        return try {
+            val response = restTemplate.exchange(uri, HttpMethod.GET, entity, object : ParameterizedTypeReference<SalesforceSearchResponse<ApexClassDto>>() {}).body
+            response?.searchRecords ?: emptyList()
+        } catch (e: Exception) {
+            logger.error("Error searching for related test classes for $name: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun mapTriggerEvents(dto: ApexTriggerDto): List<String> {
+        val events = mutableListOf<String>()
+        if (dto.usageBeforeInsert == true) events.add("Before Insert")
+        if (dto.usageBeforeUpdate == true) events.add("Before Update")
+        if (dto.usageBeforeDelete == true) events.add("Before Delete")
+        if (dto.usageAfterInsert == true) events.add("After Insert")
+        if (dto.usageAfterUpdate == true) events.add("After Update")
+        if (dto.usageAfterDelete == true) events.add("After Delete")
+        if (dto.usageAfterUndelete == true) events.add("After Undelete")
+        return events
     }
 }
