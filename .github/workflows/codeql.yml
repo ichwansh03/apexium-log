@@ -2,11 +2,12 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feat/trace-flags" ]
   pull_request:
-    branches: [ "feat/trace-flags" ]
+    branches: [ "main" ]
   schedule:
     - cron: '0 0 * * 0'
+  workflow_dispatch:
 
 jobs:
   analyze:
@@ -40,7 +41,9 @@ jobs:
         build-mode: manual
 
     - name: Build with Maven
-      run: mvn clean compile -DskipTests
+      run: |
+        chmod +x mvnw
+        ./mvnw clean compile -DskipTests
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
