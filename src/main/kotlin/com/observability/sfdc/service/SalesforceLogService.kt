@@ -21,6 +21,9 @@ class SalesforceLogService(
     private val minioService: MinioService,
     @Value($$"${salesforce.api-version}") private val apiVersion: String
 ) {
+    private val salesforceIdRegex = Regex("^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$")
+
+    private fun isValidSalesforceId(id: String): Boolean = salesforceIdRegex.matches(id)
     private val restTemplate = RestTemplate(JdkClientHttpRequestFactory())
     private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
@@ -223,10 +226,14 @@ class SalesforceLogService(
     }
 
     fun deleteTraceFlag(id: String): Boolean {
+        if (!isValidSalesforceId(id)) return false
         val tokenResponse = authService.getAccessToken() ?: return false
         
         val baseUrl = tokenResponse.instanceUrl!!
-        val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag/$id"
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag")
+            .pathSegment(id)
+            .build()
+            .toUri()
 
         val headers = HttpHeaders()
         headers.setBearerAuth(tokenResponse.accessToken!!)
@@ -234,7 +241,7 @@ class SalesforceLogService(
         val entity = HttpEntity<Unit>(headers)
         
         return try {
-            restTemplate.exchange(url, HttpMethod.DELETE, entity, Unit::class.java).statusCode.is2xxSuccessful
+            restTemplate.exchange(uri, HttpMethod.DELETE, entity, Unit::class.java).statusCode.is2xxSuccessful
         } catch (e: Exception) {
             println("Error deleting TraceFlag $id: ${e.message}")
             false
@@ -242,10 +249,14 @@ class SalesforceLogService(
     }
 
     fun patchTraceFlag(id: String, startDate: String, expirationDate: String): Boolean {
+        if (!isValidSalesforceId(id)) return false
         val tokenResponse = authService.getAccessToken() ?: return false
         
         val baseUrl = tokenResponse.instanceUrl!!
-        val url = "$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag/$id"
+        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/sobjects/TraceFlag")
+            .pathSegment(id)
+            .build()
+            .toUri()
 
         val headers = HttpHeaders()
         headers.setBearerAuth(tokenResponse.accessToken!!)
@@ -260,7 +271,7 @@ class SalesforceLogService(
         return try {
             // Note: RestTemplate requires a specific RequestFactory (like Apache HttpClient) to support PATCH.
             // If this fails with "Invalid HTTP method: PATCH", we will need to update the configuration.
-            restTemplate.exchange(url, HttpMethod.PATCH, entity, Unit::class.java).statusCode.is2xxSuccessful
+            restTemplate.exchange(uri, HttpMethod.PATCH, entity, Unit::class.java).statusCode.is2xxSuccessful
         } catch (e: Exception) {
             println("Error patching TraceFlag $id: ${e.message}")
             false
