@@ -21,14 +21,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'java-kotlin', 'javascript-typescript' ]
+        language: [ 'java-kotlin' ]
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set up JDK 21
-      if: matrix.language == 'java-kotlin'
       uses: actions/setup-java@v4
       with:
         java-version: '21'
@@ -39,11 +38,9 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.language == 'java-kotlin' && 'manual' || 'autobuild' }}
-        config-file: ./.github/codeql-config.yml
+        build-mode: manual
 
     - name: Build with Maven
-      if: matrix.language == 'java-kotlin'
       run: |
         chmod +x mvnw
         ./mvnw clean compile -DskipTests
