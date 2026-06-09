@@ -349,20 +349,28 @@ class SalesforceMetadataService(
     }
 
     fun getMetadataDetail(id: String, type: String): MetadataDetailDto? {
-        if (type != "ApexClass" && type != "ApexTrigger") {
+        val objectType = when (type) {
+            "ApexClass" -> "ApexClass"
+            "ApexTrigger" -> "ApexTrigger"
+            else -> return null
+        }
+
+        val normalizedId = id.trim()
+        val salesforceIdRegex = Regex("^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$")
+        if (!salesforceIdRegex.matches(normalizedId)) {
             return null
         }
         
         val tokenResponse = authService.getAccessToken() ?: return null
         val baseUrl = tokenResponse.instanceUrl!!
         
-        val fields = if (type == "ApexTrigger") {
+        val fields = if (objectType == "ApexTrigger") {
             "Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, UsageAfterUndelete, LastModifiedDate, LastModifiedBy.Name"
         } else {
             "Id, Name, ApiVersion, Status, LastModifiedDate, LastModifiedBy.Name"
         }
         
-        val query = "SELECT $fields FROM $type WHERE Id = '$id'"
+        val query = "SELECT $fields FROM $objectType WHERE Id = '$normalizedId'"
         val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/tooling/query")
             .queryParam("q", query)
             .build()
@@ -373,7 +381,7 @@ class SalesforceMetadataService(
         val entity = HttpEntity<Unit>(headers)
 
         return try {
-            if (type == "ApexTrigger") {
+            if (objectType == "ApexTrigger") {
                 val response = restTemplate.exchange(uri, HttpMethod.GET, entity, object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {}).body
                 val trigger = response?.records?.firstOrNull() ?: return null
                 val testClasses = findRelatedTestClasses(trigger.name!!)
