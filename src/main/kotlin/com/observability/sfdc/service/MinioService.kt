@@ -43,7 +43,7 @@ class MinioService(
                     .build()
             )
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
