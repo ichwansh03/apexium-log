@@ -54,5 +54,7 @@ data class ApexTriggerDto(
     val createdDate: String?,
 
     @JsonProperty("CreatedBy")
-    val createdBy: UserSummaryDto?
+    val createdBy: UserSummaryDto?,
+
+    val coverage: ApexCodeCoverageDto? = null
 )
