@@ -17,6 +17,14 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/sfdc/logs")
 class SalesforceLogController(
     private val logService: SalesforceLogService,
+    private val traceJobService: TraceJobService,
+    private val logRepository: LogRepository
+) {
+    private val salesforceIdRegex = Regex("^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$")
+
+    private fun isValidSalesforceId(id: String): Boolean = salesforceIdRegex.matches(id)
+class SalesforceLogController(
+    private val logService: SalesforceLogService,
     private val logRepository: LogRepository,
     private val traceJobService: TraceJobService
 ) {
@@ -84,6 +92,9 @@ class SalesforceLogController(
 
     @DeleteMapping("/trace-flags/{id}")
     fun deleteTraceFlag(@PathVariable id: String): ResponseEntity<Unit> {
+        if (!isValidSalesforceId(id)) {
+            return ResponseEntity.badRequest().build()
+        }
         val deleted = logService.deleteTraceFlag(id)
         return if (deleted) ResponseEntity.ok().build() else ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
     }
