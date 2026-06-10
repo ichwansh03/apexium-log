@@ -31,7 +31,7 @@ class SalesforceAuthService(
         if (clientId.isBlank()) {
             logger.error("SALESFORCE_CLIENT_ID is blank or missing!")
         } else {
-            logger.info("Client ID loaded (length: ${clientId.length}, starts with: ${clientId.take(4)}...)")
+            logger.info("Client ID successfully loaded")
         }
 
         val headers = HttpHeaders()
