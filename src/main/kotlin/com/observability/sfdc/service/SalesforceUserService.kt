@@ -9,114 +9,43 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
-import org.springframework.http.HttpEntity
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
-import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.client.RestTemplate
-import org.springframework.web.util.UriComponentsBuilder
 
 @Service
 class SalesforceUserService(
-    private val authService: SalesforceAuthService,
+    authService: SalesforceAuthService,
     private val userRepository: UserRepository,
-    @Value($$"${salesforce.api-version}") private val apiVersion: String
-) {
-    private val restTemplate = RestTemplate()
+    @Value($$"${salesforce.api-version}") apiVersion: String
+) : SalesforceBaseService(authService, apiVersion) {
 
     @Cacheable(value = ["sf_users"], key = "'all_users_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
     fun getAllUsers(name: String? = null, limit: Int = 10, offset: Int = 0): List<SalesforceUserDto> {
-        val tokenResponse = authService.getAccessToken() ?: return emptyList()
-        
-        val baseUrl = tokenResponse.instanceUrl!!
         var query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE ((IsActive = TRUE AND Entity__c = 'AMFS') OR Name = 'Automated Process') "
-        
         if (!name.isNullOrBlank()) {
             val escapedName = name.replace("'", "\\'")
             query += "AND Name LIKE '%$escapedName%' "
         }
-        
         query += "ORDER BY Name ASC LIMIT $limit OFFSET $offset"
-        
-        val uri = UriComponentsBuilder.fromUriString("$baseUrl/services/data/$apiVersion/query")
-            .queryParam("q", query)
-            .build()
-            .toUri()
 
-        val headers = HttpHeaders()
-        headers.setBearerAuth(tokenResponse.accessToken!!)
-        
-        val entity = HttpEntity<Unit>(headers)
-        
-        return try {
-            val response: ResponseEntity<SalesforceQueryResult<SalesforceUserDto>> = restTemplate.exchange(
-                uri,
-                HttpMethod.GET,
-                entity,
-                object : ParameterizedTypeReference<SalesforceQueryResult<SalesforceUserDto>>() {}
-            )
-            val records = response.body?.records ?: emptyList()
-            
-            // Sync to database asynchronously or in-line (doing in-line for simplicity here)
-            syncUsersToDatabase(records)
-            
-            records
-        } catch (e: Exception) {
-            println("Error querying Salesforce Users: ${e.message}")
-            emptyList()
-        }
+        val records = querySalesforce("querying Salesforce Users", query, object : ParameterizedTypeReference<SalesforceQueryResult<SalesforceUserDto>>() {}, useTooling = false)
+        if (records.isNotEmpty()) syncUsersToDatabase(records)
+        return records
     }
 
     fun searchUsers(name: String?, limit: Int = 10, offset: Int = 0): List<User> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
+        if (!name.isNullOrBlank()) getAllUsers(name = name, limit = 200)
+        else if (userRepository.count() == 0L) getAllUsers(limit = 200)
         
-        // Sync with Salesforce if a name is provided or if the database is empty
-        if (!name.isNullOrBlank()) {
-            getAllUsers(name = name, limit = 200)
-        } else if (userRepository.count() == 0L) {
-            getAllUsers(limit = 200)
-        }
-        
-        return if (name.isNullOrBlank()) {
-            userRepository.findAllProjectedBy(pageable)
-        } else {
-            userRepository.findByNameContainingIgnoreCase(name, pageable)
-        }
+        return if (name.isNullOrBlank()) userRepository.findAllProjectedBy(pageable)
+               else userRepository.findByNameContainingIgnoreCase(name, pageable)
     }
 
     @Transactional
-    private fun syncUsersToDatabase(dtos: List<SalesforceUserDto>) {
-        dtos.forEach { dto ->
-            val existing = userRepository.findBySfdcId(dto.id)
-            val user = if (existing.isPresent) {
-                val current = existing.get()
-                current.copy(
-                    name = dto.name,
-                    username = dto.username,
-                    email = dto.email,
-                    profileName = dto.profile?.name,
-                    isActive = dto.isActive,
-                    entity = dto.entity
-                )
-            } else {
-                User(
-                    sfdcId = dto.id,
-                    name = dto.name,
-                    username = dto.username,
-                    email = dto.email,
-                    profileName = dto.profile?.name,
-                    isActive = dto.isActive,
-                    entity = dto.entity
-                )
-            }
-            try {
-                userRepository.save(user)
-            } catch (e: Exception) {
-                println("Failed to save user ${dto.id}: ${e.message}")
-            }
-        }
+    private fun syncUsersToDatabase(dtos: List<SalesforceUserDto>) = dtos.forEach { dto ->
+        val entity = userRepository.findBySfdcId(dto.id).orElse(User(sfdcId = dto.id, name = dto.name, username = dto.username, email = dto.email, profileName = dto.profile?.name, isActive = dto.isActive, entity = dto.entity))
+        userRepository.save(entity.copy(name = dto.name, username = dto.username, email = dto.email, profileName = dto.profile?.name, isActive = dto.isActive, entity = dto.entity))
     }
 }
