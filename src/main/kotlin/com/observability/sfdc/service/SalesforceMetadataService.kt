@@ -56,7 +56,12 @@ class SalesforceMetadataService(
         query += "ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val records = querySalesforce("querying ApexClasses", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexClassDto>>() {})
-        if (records.isNotEmpty()) syncClassesToDatabase(records)
+        if (records.isNotEmpty()) {
+            val coverageMap = fetchCoverageForMetadata(records.map { it.id })
+            val recordsWithCoverage = records.map { it.copy(coverage = coverageMap[it.id]) }
+            syncClassesToDatabase(recordsWithCoverage)
+            return recordsWithCoverage
+        }
         return records
     }
 
@@ -71,8 +76,21 @@ class SalesforceMetadataService(
         query += "ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val records = querySalesforce("querying ApexTriggers", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {})
-        if (records.isNotEmpty()) syncTriggersToDatabase(records)
+        if (records.isNotEmpty()) {
+            val coverageMap = fetchCoverageForMetadata(records.map { it.id })
+            val recordsWithCoverage = records.map { it.copy(coverage = coverageMap[it.id]) }
+            syncTriggersToDatabase(recordsWithCoverage)
+            return recordsWithCoverage
+        }
         return records
+    }
+
+    private fun fetchCoverageForMetadata(ids: List<String>): Map<String, ApexCodeCoverageDto> {
+        if (ids.isEmpty()) return emptyMap()
+        val idList = ids.joinToString(",") { "'$it'" }
+        val query = "SELECT ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate WHERE ApexClassOrTriggerId IN ($idList)"
+        return querySalesforce("querying coverage", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexCodeCoverageDto>>() {})
+            .associateBy { it.apexClassOrTriggerId }
     }
 
     // --- Search methods ---
@@ -105,15 +123,19 @@ class SalesforceMetadataService(
             val uri = buildUri(instanceUrl, "query").queryParam("q", query).build().toUri()
             if (objectType == "ApexTrigger") {
                 val trigger = restTemplate.exchange(uri, HttpMethod.GET, HttpEntity<Unit>(createHeaders(token)), object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {}).body?.records?.firstOrNull() ?: return@executeWithToken null
-                MetadataDetailDto(trigger.id, trigger.name!!, "ApexTrigger", trigger.apiVersion, trigger.status, trigger.lastModifiedDate, trigger.lastModifiedBy?.name, trigger.tableEnumOrId, mapTriggerEvents(trigger), findRelatedTestClasses(trigger.name!!))
+                MetadataDetailDto(trigger.id, trigger.name!!, "ApexTrigger", trigger.apiVersion, trigger.status, trigger.lastModifiedDate, trigger.lastModifiedBy?.name, trigger.tableEnumOrId, mapTriggerEvents(trigger), findRelatedTestClasses(
+                    trigger.name
+                ))
             } else {
                 val apexClass = restTemplate.exchange(uri, HttpMethod.GET, HttpEntity<Unit>(createHeaders(token)), object : ParameterizedTypeReference<SalesforceQueryResult<ApexClassDto>>() {}).body?.records?.firstOrNull() ?: return@executeWithToken null
-                MetadataDetailDto(apexClass.id, apexClass.name!!, "ApexClass", apexClass.apiVersion, apexClass.status, apexClass.lastModifiedDate, apexClass.lastModifiedBy?.name, testClasses = findRelatedTestClasses(apexClass.name!!))
+                MetadataDetailDto(apexClass.id, apexClass.name!!, "ApexClass", apexClass.apiVersion, apexClass.status, apexClass.lastModifiedDate, apexClass.lastModifiedBy?.name, testClasses = findRelatedTestClasses(
+                    apexClass.name
+                ))
             }
         }
     }
 
-    private fun findRelatedTestClasses(name: String): List<ApexClassDto> {
+    internal open fun findRelatedTestClasses(name: String): List<ApexClassDto> {
         return executeWithToken("searching related test classes for $name", emptyList()) { token, instanceUrl ->
             val sosl = "FIND {$name AND \"@isTest\"} IN ALL FIELDS RETURNING ApexClass (Id, Name, ApiVersion, Status, LastModifiedDate, LastModifiedBy.Name WHERE Name != '$name' AND Status = 'Active')"
             val uri = buildUri(instanceUrl, "search").queryParam("q", sosl).build().toUri()
@@ -128,13 +150,13 @@ class SalesforceMetadataService(
     }
 
     @Transactional private fun syncClassesToDatabase(dtos: List<ApexClassDto>) = dtos.distinctBy { it.id }.forEach { dto ->
-        val entity = classRepository.findBySfdcId(dto.id).orElse(ApexClass(sfdcId = dto.id, name = dto.name, apiVersion = dto.apiVersion, status = dto.status, lengthWithoutComments = dto.lengthWithoutComments, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name))
-        classRepository.save(entity.copy(name = dto.name, apiVersion = dto.apiVersion, status = dto.status, lengthWithoutComments = dto.lengthWithoutComments, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name))
+        val entity = classRepository.findBySfdcId(dto.id).orElse(ApexClass(sfdcId = dto.id, name = dto.name, apiVersion = dto.apiVersion, status = dto.status, lengthWithoutComments = dto.lengthWithoutComments, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered))
+        classRepository.save(entity.copy(name = dto.name, apiVersion = dto.apiVersion, status = dto.status, lengthWithoutComments = dto.lengthWithoutComments, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered))
     }
 
     @Transactional private fun syncTriggersToDatabase(dtos: List<ApexTriggerDto>) = dtos.distinctBy { it.id }.forEach { dto ->
-        val entity = triggerRepository.findBySfdcId(dto.id).orElse(ApexTrigger(sfdcId = dto.id, name = dto.name, sobject = dto.tableEnumOrId, apiVersion = dto.apiVersion, status = dto.status, usageBeforeInsert = dto.usageBeforeInsert, usageBeforeUpdate = dto.usageBeforeUpdate, usageBeforeDelete = dto.usageBeforeDelete, usageAfterInsert = dto.usageAfterInsert, usageAfterUpdate = dto.usageAfterUpdate, usageAfterDelete = dto.usageAfterDelete, usageAfterUndelete = dto.usageAfterUndelete, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name))
-        triggerRepository.save(entity.copy(name = dto.name, sobject = dto.tableEnumOrId, apiVersion = dto.apiVersion, status = dto.status, usageBeforeInsert = dto.usageBeforeInsert, usageBeforeUpdate = dto.usageBeforeUpdate, usageBeforeDelete = dto.usageBeforeDelete, usageAfterInsert = dto.usageAfterInsert, usageAfterUpdate = dto.usageAfterUpdate, usageAfterDelete = dto.usageAfterDelete, usageAfterUndelete = dto.usageAfterUndelete, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name))
+        val entity = triggerRepository.findBySfdcId(dto.id).orElse(ApexTrigger(sfdcId = dto.id, name = dto.name, sobject = dto.tableEnumOrId, apiVersion = dto.apiVersion, status = dto.status, usageBeforeInsert = dto.usageBeforeInsert, usageBeforeUpdate = dto.usageBeforeUpdate, usageBeforeDelete = dto.usageBeforeDelete, usageAfterInsert = dto.usageAfterInsert, usageAfterUpdate = dto.usageAfterUpdate, usageAfterDelete = dto.usageAfterDelete, usageAfterUndelete = dto.usageAfterUndelete, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered))
+        triggerRepository.save(entity.copy(name = dto.name, sobject = dto.tableEnumOrId, apiVersion = dto.apiVersion, status = dto.status, usageBeforeInsert = dto.usageBeforeInsert, usageBeforeUpdate = dto.usageBeforeUpdate, usageBeforeDelete = dto.usageBeforeDelete, usageAfterInsert = dto.usageAfterInsert, usageAfterUpdate = dto.usageAfterUpdate, usageAfterDelete = dto.usageAfterDelete, usageAfterUndelete = dto.usageAfterUndelete, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered))
     }
 
     private fun mapTriggerEvents(dto: ApexTriggerDto) = listOfNotNull(if (dto.usageBeforeInsert == true) "Before Insert" else null, if (dto.usageBeforeUpdate == true) "Before Update" else null, if (dto.usageBeforeDelete == true) "Before Delete" else null, if (dto.usageAfterInsert == true) "After Insert" else null, if (dto.usageAfterUpdate == true) "After Update" else null, if (dto.usageAfterDelete == true) "After Delete" else null, if (dto.usageAfterUndelete == true) "After Undelete" else null)

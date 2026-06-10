@@ -17,7 +17,7 @@ abstract class SalesforceBaseService(
     protected val logger = LoggerFactory.getLogger(this::class.java)
     protected val restTemplate = RestTemplate()
 
-    protected fun <T> executeWithToken(
+    internal open fun <T> executeWithToken(
         operationName: String,
         fallback: T,
         action: (token: String, instanceUrl: String) -> T
@@ -45,7 +45,7 @@ abstract class SalesforceBaseService(
         return UriComponentsBuilder.fromUriString(baseUrl)
     }
 
-    protected fun <T> querySalesforce(
+    internal open fun <T> querySalesforce(
         operationName: String,
         query: String,
         typeReference: ParameterizedTypeReference<SalesforceQueryResult<T>>,

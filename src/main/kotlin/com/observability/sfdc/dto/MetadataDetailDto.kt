@@ -13,5 +13,6 @@ data class MetadataDetailDto(
     val lastModifiedByName: String?,
     val targetObject: String? = null, // For Triggers: TableEnumOrId
     val triggerEvents: List<String> = emptyList(),
-    val testClasses: List<ApexClassDto> = emptyList()
+    val testClasses: List<ApexClassDto> = emptyList(),
+    val coverage: ApexCodeCoverageDto? = null
 )

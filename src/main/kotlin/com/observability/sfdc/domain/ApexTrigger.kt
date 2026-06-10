@@ -26,5 +26,8 @@ data class ApexTrigger(
     val lastModifiedDate: String?,
     val lastModifiedByName: String?,
     val createdDate: String?,
-    val createdByName: String?
+    val createdByName: String?,
+
+    val numLinesCovered: Int? = null,
+    val numLinesUncovered: Int? = null
 )
