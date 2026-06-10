@@ -7,71 +7,29 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.*
 import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Service
-import org.springframework.web.client.RestTemplate
-import org.springframework.web.util.UriComponentsBuilder
 import java.io.InputStream
-import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @Service
 class SalesforceLogService(
-    private val authService: SalesforceAuthService,
+    authService: SalesforceAuthService,
     private val debugLevelRepository: DebugLevelRepository,
     private val minioService: MinioService,
-    @Value($$"${salesforce.api-version}") private val apiVersion: String
-) {
+    @Value($$"${salesforce.api-version}") apiVersion: String
+) : SalesforceBaseService(authService, apiVersion) {
     private val salesforceIdRegex = Regex("^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$")
 
+    init {
+        restTemplate.requestFactory = JdkClientHttpRequestFactory()
+    }
+
     private fun isValidSalesforceId(id: String): Boolean = salesforceIdRegex.matches(id)
-    private val restTemplate = RestTemplate(JdkClientHttpRequestFactory())
     private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-
-    private fun <T> executeWithToken(
-        operationName: String,
-        fallback: T,
-        action: (token: String, instanceUrl: String) -> T
-    ): T {
-        val tokenResponse = authService.getAccessToken() ?: return fallback
-        return try {
-            action(tokenResponse.accessToken!!, tokenResponse.instanceUrl!!)
-        } catch (e: Exception) {
-            println("Error $operationName: ${e.message}")
-            fallback
-        }
-    }
-
-    private fun createHeaders(token: String, contentType: MediaType? = null): HttpHeaders {
-        return HttpHeaders().apply {
-            setBearerAuth(token)
-            contentType?.let { this.contentType = it }
-        }
-    }
-
-    private fun buildToolingUri(instanceUrl: String, path: String, id: String? = null): UriComponentsBuilder {
-        val builder = UriComponentsBuilder.fromUriString("$instanceUrl/services/data/$apiVersion/tooling/$path")
-        return if (id != null) builder.pathSegment(id) else builder
-    }
-
-    private fun <T> queryTooling(
-        operationName: String,
-        query: String,
-        typeReference: ParameterizedTypeReference<SalesforceQueryResult<T>>
-    ): List<T> {
-        return executeWithToken(operationName, emptyList()) { token, instanceUrl ->
-            val uri = buildToolingUri(instanceUrl, "query")
-                .queryParam("q", query)
-                .build()
-                .toUri()
-
-            val entity = HttpEntity<Unit>(createHeaders(token))
-            restTemplate.exchange(uri, HttpMethod.GET, entity, typeReference).body?.records ?: emptyList()
-        }
-    }
 
     fun queryApexLogs(limit: Int = 10, offset: Int = 0, fetchBody: Boolean = true): List<ApexLogDto> {
         val query = "SELECT Id, LogUser.Name, Operation, StartTime, Status, Request, LogLength, DurationMilliseconds FROM ApexLog ORDER BY StartTime DESC LIMIT $limit OFFSET $offset"
-        val records = queryTooling("querying ApexLogs", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexLogDto>>() {})
+        val records = querySalesforce("querying ApexLogs", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexLogDto>>() {})
 
         if (!fetchBody || records.isEmpty()) return records
 
@@ -127,7 +85,7 @@ class SalesforceLogService(
 
         // 2. Fallback to Salesforce Tooling API
         val body = executeWithToken("fetching log body for $logId from Salesforce", null) { token, instanceUrl ->
-            val url = buildToolingUri(instanceUrl, "sobjects/ApexLog", logId).path("/Body").build().toUriString()
+            val url = buildUri(instanceUrl, "sobjects/ApexLog/$logId/Body").build().toUriString()
             restTemplate.exchange(url, HttpMethod.GET, HttpEntity<Unit>(createHeaders(token)), String::class.java).body
         }
 
@@ -154,7 +112,7 @@ class SalesforceLogService(
         val debugLevel = debugLevels.find { it.developerName == frontendRequest.debugLevelName || it.masterLabel == frontendRequest.debugLevelName }
             ?: return SalesforceCreateResponse(id = null, success = false, errors = listOf("DebugLevel '${frontendRequest.debugLevelName}' not found. Please sync metadata first."))
 
-        val now = ZonedDateTime.now(ZoneId.of("UTC"))
+        val now = ZonedDateTime.now(java.time.ZoneId.of("UTC"))
         val startDate = now.format(sfdcFormatter)
         val expirationDate = now
             .plusDays((frontendRequest.durationDays ?: 0).toLong())
@@ -176,23 +134,23 @@ class SalesforceLogService(
         )
 
         return executeWithToken("creating TraceFlag", SalesforceCreateResponse(id = null, success = false, errors = listOf("Authentication failed"))) { token, instanceUrl ->
-            val url = buildToolingUri(instanceUrl, "sobjects/TraceFlag").build().toUriString()
+            val url = buildUri(instanceUrl, "sobjects/TraceFlag").build().toUriString()
             val entity = HttpEntity(sfdcRequest, createHeaders(token, MediaType.APPLICATION_JSON))
             restTemplate.postForObject(url, entity, SalesforceCreateResponse::class.java)
         }
     }
 
     fun getActiveTraceFlags(): List<TraceFlagDto> {
-        val now = ZonedDateTime.now(ZoneId.of("UTC")).format(sfdcFormatter)
+        val now = ZonedDateTime.now(java.time.ZoneId.of("UTC")).format(sfdcFormatter)
         val query = "SELECT Id, TracedEntityId, TracedEntity.Name, StartDate, ExpirationDate, DebugLevelId, DebugLevel.DeveloperName FROM TraceFlag WHERE ExpirationDate > $now"
-        return queryTooling("querying active TraceFlags", query, object : ParameterizedTypeReference<SalesforceQueryResult<TraceFlagDto>>() {})
+        return querySalesforce("querying active TraceFlags", query, object : ParameterizedTypeReference<SalesforceQueryResult<TraceFlagDto>>() {})
     }
 
     fun deleteTraceFlag(id: String): Boolean {
         if (!isValidSalesforceId(id)) return false
         
         return executeWithToken("deleting TraceFlag $id", false) { token, instanceUrl ->
-            val uri = buildToolingUri(instanceUrl, "sobjects/TraceFlag", id).build().toUri()
+            val uri = buildUri(instanceUrl, "sobjects/TraceFlag/$id").build().toUri()
             restTemplate.exchange(uri, HttpMethod.DELETE, HttpEntity<Unit>(createHeaders(token)), Unit::class.java).statusCode.is2xxSuccessful
         }
     }
@@ -201,7 +159,7 @@ class SalesforceLogService(
         if (!isValidSalesforceId(id)) return false
         
         return executeWithToken("patching TraceFlag $id", false) { token, instanceUrl ->
-            val uri = buildToolingUri(instanceUrl, "sobjects/TraceFlag", id).build().toUri()
+            val uri = buildUri(instanceUrl, "sobjects/TraceFlag/$id").build().toUri()
             val body = mapOf(
                 "StartDate" to startDate,
                 "ExpirationDate" to expirationDate
