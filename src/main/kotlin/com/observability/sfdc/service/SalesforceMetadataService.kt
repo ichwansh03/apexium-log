@@ -121,16 +121,18 @@ class SalesforceMetadataService(
         val query = "SELECT $fields FROM $objectType WHERE Id = '${id.trim()}'"
         return executeWithToken("fetching metadata detail for $id", null) { token, instanceUrl ->
             val uri = buildUri(instanceUrl, "query").queryParam("q", query).build().toUri()
+            val coverage = fetchCoverageForMetadata(listOf(id))[id]
+            
             if (objectType == "ApexTrigger") {
                 val trigger = restTemplate.exchange(uri, HttpMethod.GET, HttpEntity<Unit>(createHeaders(token)), object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {}).body?.records?.firstOrNull() ?: return@executeWithToken null
                 MetadataDetailDto(trigger.id, trigger.name!!, "ApexTrigger", trigger.apiVersion, trigger.status, trigger.lastModifiedDate, trigger.lastModifiedBy?.name, trigger.tableEnumOrId, mapTriggerEvents(trigger), findRelatedTestClasses(
                     trigger.name
-                ))
+                ), coverage)
             } else {
                 val apexClass = restTemplate.exchange(uri, HttpMethod.GET, HttpEntity<Unit>(createHeaders(token)), object : ParameterizedTypeReference<SalesforceQueryResult<ApexClassDto>>() {}).body?.records?.firstOrNull() ?: return@executeWithToken null
                 MetadataDetailDto(apexClass.id, apexClass.name!!, "ApexClass", apexClass.apiVersion, apexClass.status, apexClass.lastModifiedDate, apexClass.lastModifiedBy?.name, testClasses = findRelatedTestClasses(
                     apexClass.name
-                ))
+                ), coverage = coverage)
             }
         }
     }
