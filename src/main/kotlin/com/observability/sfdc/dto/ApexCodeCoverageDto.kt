@@ -1,17 +1,18 @@
 package com.observability.sfdc.dto
 
+import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApexCodeCoverageDto(
-    @JsonProperty("ApexClassOrTriggerId")
+    @JsonAlias("ApexClassOrTriggerId")
     val apexClassOrTriggerId: String,
     
-    @JsonProperty("NumLinesCovered")
+    @JsonAlias("NumLinesCovered")
     val numLinesCovered: Int = 0,
     
-    @JsonProperty("NumLinesUncovered")
+    @JsonAlias("NumLinesUncovered")
     val numLinesUncovered: Int = 0
 ) {
     val coveragePercentage: Double

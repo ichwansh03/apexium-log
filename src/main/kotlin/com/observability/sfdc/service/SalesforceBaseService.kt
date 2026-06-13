@@ -58,7 +58,15 @@ abstract class SalesforceBaseService(
                 .toUri()
 
             val entity = HttpEntity<Unit>(createHeaders(token))
-            restTemplate.exchange(uri, HttpMethod.GET, entity, typeReference).body?.records ?: emptyList()
+            val response = restTemplate.exchange(uri, HttpMethod.GET, entity, typeReference)
+            val result = response.body
+            val records = result?.records ?: emptyList()
+            
+            if (records.isEmpty()) {
+                logger.info("$operationName: Query returned 0 records. Total size in Salesforce: ${result?.totalSize ?: "unknown"}")
+            }
+            
+            records
         }
     }
 }
