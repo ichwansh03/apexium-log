@@ -88,7 +88,8 @@ graph TD
     REDIS_PORT=6379
     ```
 3.  **Run Application**: Ensure your local database (PostgreSQL) and Redis are running, then start the application using Maven.
-4.  **Reference**: See [SKILL.md](./SKILL.md) for detailed implementation snippets and API references.
+4.  **Monitoring**: See [MONITORING.md](./MONITORING.md) for Prometheus and Actuator configuration.
+5.  **Reference**: See [SKILL.md](./SKILL.md) for detailed implementation snippets and API references.
 
 ## Contributing
 
