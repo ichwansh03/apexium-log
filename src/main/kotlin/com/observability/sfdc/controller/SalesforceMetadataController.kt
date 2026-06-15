@@ -7,6 +7,8 @@ import com.observability.sfdc.dto.ApexTriggerDto
 import com.observability.sfdc.dto.DebugLevelDto
 import com.observability.sfdc.dto.MetadataDetailDto
 import com.observability.sfdc.service.SalesforceMetadataService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -15,11 +17,13 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/sfdc/metadata")
+@Tag(name = "Salesforce Metadata", description = "Endpoints for retrieving Salesforce metadata information (Classes, Triggers, Debug Levels)")
 class SalesforceMetadataController(
     private val metadataService: SalesforceMetadataService
 ) {
 
     @GetMapping("/details/{type}/{id}")
+    @Operation(summary = "Get Metadata Details", description = "Retrieves deep details for a specific Apex class or trigger, including coverage and related test classes.")
     fun getMetadataDetails(
         @PathVariable type: String,
         @PathVariable id: String
@@ -28,6 +32,7 @@ class SalesforceMetadataController(
     }
 
     @GetMapping("/debug-levels")
+    @Operation(summary = "Get Debug Levels from Salesforce", description = "Retrieves all available debug configurations directly from Salesforce.")
     fun getDebugLevels(
         @RequestParam(defaultValue = "10") size: Int,
         @RequestParam(defaultValue = "0") page: Int
@@ -37,6 +42,7 @@ class SalesforceMetadataController(
     }
 
     @GetMapping("/debug-levels/db")
+    @Operation(summary = "Search Debug Levels in Database", description = "Searches for debug levels stored in the local database.")
     fun searchDebugLevels(
         @RequestParam(required = false) name: String?,
         @RequestParam(defaultValue = "10") size: Int,
@@ -47,6 +53,7 @@ class SalesforceMetadataController(
     }
 
     @GetMapping("/classes")
+    @Operation(summary = "Get Apex Classes from Salesforce", description = "Retrieves active Apex classes directly from Salesforce.")
     fun getApexClasses(
         @RequestParam(defaultValue = "10") size: Int,
         @RequestParam(defaultValue = "0") page: Int
@@ -56,6 +63,7 @@ class SalesforceMetadataController(
     }
 
     @GetMapping("/classes/db")
+    @Operation(summary = "Search Apex Classes in Database", description = "Searches for Apex classes stored in the local database.")
     fun searchClasses(
         @RequestParam(required = false) name: String?,
         @RequestParam(defaultValue = "10") size: Int,
@@ -66,6 +74,7 @@ class SalesforceMetadataController(
     }
 
     @GetMapping("/triggers")
+    @Operation(summary = "Get Apex Triggers from Salesforce", description = "Retrieves active Apex triggers directly from Salesforce.")
     fun getApexTriggers(
         @RequestParam(defaultValue = "10") size: Int,
         @RequestParam(defaultValue = "0") page: Int
@@ -75,6 +84,7 @@ class SalesforceMetadataController(
     }
 
     @GetMapping("/triggers/db")
+    @Operation(summary = "Search Apex Triggers in Database", description = "Searches for Apex triggers stored in the local database.")
     fun searchTriggers(
         @RequestParam(required = false) name: String?,
         @RequestParam(defaultValue = "10") size: Int,

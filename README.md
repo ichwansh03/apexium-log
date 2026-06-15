@@ -89,7 +89,10 @@ graph TD
     ```
 3.  **Run Application**: Ensure your local database (PostgreSQL) and Redis are running, then start the application using Maven.
 4.  **Monitoring**: See [MONITORING.md](./MONITORING.md) for Prometheus and Actuator configuration.
-5.  **Reference**: See [SKILL.md](./SKILL.md) for detailed implementation snippets and API references.
+5.  **API Documentation**: Once the application is running, you can access the interactive API documentation (Swagger UI) at:
+    *   `http://localhost:8080/swagger-ui.html`
+    *   OpenAPI Specification: `http://localhost:8080/v3/api-docs`
+6.  **Reference**: See [SKILL.md](./SKILL.md) for detailed implementation snippets and API references.
 
 ## Contributing
 

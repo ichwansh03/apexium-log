@@ -6,6 +6,8 @@ import com.observability.sfdc.dto.*
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.SalesforceLogService
 import com.observability.sfdc.service.TraceJobService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/sfdc/logs")
+@Tag(name = "Salesforce Logs", description = "Endpoints for managing and retrieving Salesforce debug logs")
 class SalesforceLogController(
     private val logService: SalesforceLogService,
     private val logRepository: LogRepository,
@@ -22,6 +25,7 @@ class SalesforceLogController(
 ) {
 
     @GetMapping
+    @Operation(summary = "Query Apex Logs from Salesforce", description = "Retrieves a list of Apex log headers directly from Salesforce Tooling API.")
     fun getApexLogs(
         @RequestParam(defaultValue = "10") size: Int,
         @RequestParam(defaultValue = "0") page: Int
@@ -31,6 +35,7 @@ class SalesforceLogController(
     }
 
     @GetMapping("/db")
+    @Operation(summary = "Get Logs from Database", description = "Retrieves processed logs stored in the local PostgreSQL database with optional filtering.")
     fun getDbLogs(
         @RequestParam(required = false) className: String?,
         @RequestParam(required = false) author: String?,
@@ -50,11 +55,13 @@ class SalesforceLogController(
     }
 
     @GetMapping("/{id}/body")
+    @Operation(summary = "Get Log Body", description = "Fetches the full text body of a specific Apex log, checking local storage first.")
     fun getLogBody(@PathVariable id: String): String? {
         return logService.getLogBody(id)
     }
 
     @GetMapping("/{id}/download")
+    @Operation(summary = "Download Log File", description = "Downloads the compressed (.gz) log file from storage.")
     fun downloadLog(
         @PathVariable id: String,
         @RequestParam(required = false) operation: String?
@@ -73,16 +80,19 @@ class SalesforceLogController(
     }
 
     @PostMapping("/trace-flags")
+    @Operation(summary = "Create Trace Flag", description = "Creates a new TraceFlag in Salesforce for a target user or class.")
     fun createTraceFlag(@Valid @RequestBody request: FrontendTraceFlagRequest): SalesforceCreateResponse? {
         return logService.createTraceFlag(request)
     }
 
     @GetMapping("/trace-flags")
+    @Operation(summary = "Get Active Trace Flags", description = "Lists all currently active TraceFlags in the Salesforce organization.")
     fun getActiveTraceFlags(): List<TraceFlagDto> {
         return logService.getActiveTraceFlags()
     }
 
     @DeleteMapping("/trace-flags/{id}")
+    @Operation(summary = "Delete Trace Flag", description = "Deletes a specific TraceFlag from Salesforce.")
     fun deleteTraceFlag(@PathVariable id: String): ResponseEntity<Unit> {
         val deleted = logService.deleteTraceFlag(id)
         return if (deleted) ResponseEntity.ok().build() else ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
@@ -91,16 +101,19 @@ class SalesforceLogController(
     // --- Trace Job Endpoints ---
 
     @PostMapping("/trace-jobs")
+    @Operation(summary = "Create Trace Job", description = "Creates a managed trace job that automatically handles Salesforce's 24-hour limit using a sliding window.")
     fun createTraceJob(@Valid @RequestBody request: FrontendTraceFlagRequest): TraceJob {
         return traceJobService.createJob(request)
     }
 
     @GetMapping("/trace-jobs")
+    @Operation(summary = "Get All Trace Jobs", description = "Lists all trace jobs (active, completed, cancelled) managed by the application.")
     fun getTraceJobs(): List<TraceJob> {
         return traceJobService.getAllJobs()
     }
 
     @DeleteMapping("/trace-jobs/{id}")
+    @Operation(summary = "Cancel Trace Job", description = "Cancels a managed trace job and deletes its associated Salesforce TraceFlag.")
     fun cancelTraceJob(@PathVariable id: Long): ResponseEntity<Unit> {
         traceJobService.cancelJob(id)
         return ResponseEntity.ok().build()
