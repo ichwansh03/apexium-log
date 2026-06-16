@@ -88,11 +88,30 @@ graph TD
     REDIS_PORT=6379
     ```
 3.  **Run Application**: Ensure your local database (PostgreSQL) and Redis are running, then start the application using Maven.
-4.  **Monitoring**: See [MONITORING.md](./MONITORING.md) for Prometheus and Actuator configuration.
-5.  **API Documentation**: Once the application is running, you can access the interactive API documentation (Swagger UI) at:
-    *   `http://localhost:8080/swagger-ui.html`
-    *   OpenAPI Specification: `http://localhost:8080/v3/api-docs`
-6.  **Reference**: See [SKILL.md](./SKILL.md) for detailed implementation snippets and API references.
+## Monitoring & API Documentation
+
+The project includes built-in observability and interactive documentation tools.
+
+### Monitoring Stack
+When running via Docker Compose, the following monitoring services are available:
+
+- **Grafana**: [http://localhost:3000](http://localhost:3000) (Credentials: `admin` / `admin`)
+    - Used for visualizing JVM metrics, Spring Boot statistics, and system health.
+    - Pre-configured dashboards are recommended in [MONITORING.md](./MONITORING.md).
+- **Prometheus**: [http://localhost:9090](http://localhost:9090)
+    - Time-series database that scrapes metrics from the application.
+- **Spring Actuator**: [http://localhost:8080/actuator](http://localhost:8080/actuator)
+    - Provides raw metric data, health status, and info endpoints.
+
+### API Documentation (Swagger)
+Interactive API documentation is automatically generated from the Spring Boot controllers:
+
+- **Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+    - Explore and test the REST API endpoints directly from your browser.
+- **OpenAPI Spec**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+    - Raw JSON/YAML specification for the API.
+
+For detailed configuration of Prometheus and custom dashboards, refer to [MONITORING.md](./MONITORING.md).
 
 ## Contributing
 
