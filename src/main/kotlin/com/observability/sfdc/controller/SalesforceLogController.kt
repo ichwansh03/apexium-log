@@ -79,6 +79,25 @@ class SalesforceLogController(
         }
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete Log", description = "Deletes a specific Apex log from Salesforce and local storage.")
+    fun deleteLog(@PathVariable id: String): ResponseEntity<Unit> {
+        val deleted = logService.deleteLog(id)
+        return if (deleted) ResponseEntity.ok().build() else ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+    }
+
+    @DeleteMapping
+    @Operation(summary = "Bulk Delete Logs", description = "Deletes multiple logs by ID or deletes all logs if no IDs are provided.")
+    fun deleteLogs(@RequestParam(required = false) ids: List<String>?): ResponseEntity<Map<String, Any>> {
+        return if (ids.isNullOrEmpty()) {
+            val count = logService.deleteAllLogs()
+            ResponseEntity.ok(mapOf("message" to "Successfully deleted $count logs from Salesforce", "count" to count))
+        } else {
+            val results = logService.deleteLogs(ids)
+            ResponseEntity.ok(mapOf("results" to results))
+        }
+    }
+
     @PostMapping("/trace-flags")
     @Operation(summary = "Create Trace Flag", description = "Creates a new TraceFlag in Salesforce for a target user or class.")
     fun createTraceFlag(@Valid @RequestBody request: FrontendTraceFlagRequest): SalesforceCreateResponse? {

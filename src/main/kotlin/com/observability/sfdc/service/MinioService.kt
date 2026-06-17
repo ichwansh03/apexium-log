@@ -103,6 +103,20 @@ class MinioService(
         }
     }
 
+    fun deleteLog(logId: String) {
+        try {
+            minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                    .bucket(bucketName)
+                    .`object`("$logId.log.gz")
+                    .build()
+            )
+            logger.info("Deleted log $logId from MinIO")
+        } catch (e: Exception) {
+            logger.error("Failed to delete log $logId from MinIO: ${e.message}")
+        }
+    }
+
     private fun compress(data: String): ByteArray {
         val bos = ByteArrayOutputStream()
         GZIPOutputStream(bos).use { it.write(data.toByteArray()) }
