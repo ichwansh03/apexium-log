@@ -2,6 +2,7 @@ package com.observability.sfdc.service
 
 import com.observability.sfdc.dto.*
 import com.observability.sfdc.repository.DebugLevelRepository
+import com.observability.sfdc.repository.LogRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.*
@@ -15,6 +16,7 @@ import java.time.format.DateTimeFormatter
 class SalesforceLogService(
     authService: SalesforceAuthService,
     private val debugLevelRepository: DebugLevelRepository,
+    private val logRepository: LogRepository,
     private val minioService: MinioService,
     @Value($$"${salesforce.api-version}") apiVersion: String
 ) : SalesforceBaseService(authService, apiVersion) {
@@ -144,6 +146,42 @@ class SalesforceLogService(
         val now = ZonedDateTime.now(java.time.ZoneId.of("UTC")).format(sfdcFormatter)
         val query = "SELECT Id, TracedEntityId, TracedEntity.Name, StartDate, ExpirationDate, DebugLevelId, DebugLevel.DeveloperName FROM TraceFlag WHERE ExpirationDate > $now"
         return querySalesforce("querying active TraceFlags", query, object : ParameterizedTypeReference<SalesforceQueryResult<TraceFlagDto>>() {})
+    }
+
+    fun deleteLog(id: String): Boolean {
+        if (!isValidSalesforceId(id)) return false
+        
+        // 1. Delete from Salesforce
+        val deletedFromSF = executeWithToken("deleting ApexLog $id", false) { token, instanceUrl ->
+            val uri = buildUri(instanceUrl, "sobjects/ApexLog/$id", useTooling = false).build().toUri()
+            restTemplate.exchange(uri, HttpMethod.DELETE, HttpEntity<Unit>(createHeaders(token)), Unit::class.java).statusCode.is2xxSuccessful
+        }
+
+        // 2. Cleanup local storage and database
+        minioService.deleteLog(id)
+        logRepository.deleteBySfdcId(id)
+        
+        return deletedFromSF
+    }
+
+    fun deleteLogs(ids: List<String>): Map<String, Boolean> {
+        return ids.associateWith { deleteLog(it) }
+    }
+
+    fun deleteAllLogs(): Int {
+        val query = "SELECT Id FROM ApexLog"
+        val records = querySalesforce("querying all ApexLogs for deletion", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexLogDto>>() {}, useTooling = false)
+        
+        var count = 0
+        records.forEach { 
+            if (deleteLog(it.id)) count++
+        }
+        
+        // Also clear local DB and MinIO just in case some were not in Salesforce but in local
+        // logRepository.deleteAll() // This might be too aggressive if we want to keep some metadata.
+        // Actually, the requirement is "Delete debug logs to avoid limited logs size in Salesforce".
+        
+        return count
     }
 
     fun deleteTraceFlag(id: String): Boolean {
