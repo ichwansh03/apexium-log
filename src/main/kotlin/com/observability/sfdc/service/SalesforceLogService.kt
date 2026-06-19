@@ -8,6 +8,7 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.*
 import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.io.InputStream
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -148,6 +149,7 @@ class SalesforceLogService(
         return querySalesforce("querying active TraceFlags", query, object : ParameterizedTypeReference<SalesforceQueryResult<TraceFlagDto>>() {})
     }
 
+    @Transactional
     fun deleteLog(id: String): Boolean {
         if (!isValidSalesforceId(id)) return false
         
@@ -164,10 +166,12 @@ class SalesforceLogService(
         return deletedFromSF
     }
 
+    @Transactional
     fun deleteLogs(ids: List<String>): Map<String, Boolean> {
         return ids.associateWith { deleteLog(it) }
     }
 
+    @Transactional
     fun deleteAllLogs(): Int {
         val query = "SELECT Id FROM ApexLog"
         val records = querySalesforce("querying all ApexLogs for deletion", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexLogDto>>() {}, useTooling = false)
