@@ -110,6 +110,12 @@ class SalesforceLogController(
         return logService.getActiveTraceFlags()
     }
 
+    @GetMapping("/trace-flags/all")
+    @Operation(summary = "Get All Trace Flags", description = "Lists all TraceFlags (active and expired) from the Salesforce organization.")
+    fun getAllTraceFlags(): List<TraceFlagDto> {
+        return logService.getAllTraceFlags()
+    }
+
     @DeleteMapping("/trace-flags/{id}")
     @Operation(summary = "Delete Trace Flag", description = "Deletes a specific TraceFlag from Salesforce.")
     fun deleteTraceFlag(@PathVariable id: String): ResponseEntity<Unit> {
@@ -131,6 +137,17 @@ class SalesforceLogController(
         return traceJobService.getAllJobs()
     }
 
+    @PostMapping("/trace-jobs/adopt")
+    @Operation(summary = "Adopt Existing Trace Flag", description = "Imports an existing Salesforce TraceFlag as a managed trace job.")
+    fun adoptTraceFlag(@RequestBody traceFlag: TraceFlagDto): ResponseEntity<Any> {
+        return try {
+            val job = traceJobService.adoptExistingTraceFlag(traceFlag)
+            ResponseEntity.ok(job)
+        } catch (e: IllegalStateException) {
+            ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to e.message))
+        }
+    }
+
     @DeleteMapping("/trace-jobs/{id}")
     @Operation(summary = "Cancel Trace Job", description = "Cancels a managed trace job and deletes its associated Salesforce TraceFlag.")
     fun cancelTraceJob(@PathVariable id: Long): ResponseEntity<Unit> {
@@ -138,3 +155,4 @@ class SalesforceLogController(
         return ResponseEntity.ok().build()
     }
 }
+

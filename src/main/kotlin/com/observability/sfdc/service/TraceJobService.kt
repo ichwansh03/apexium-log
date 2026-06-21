@@ -2,6 +2,7 @@ package com.observability.sfdc.service
 
 import com.observability.sfdc.domain.TraceJob
 import com.observability.sfdc.dto.FrontendTraceFlagRequest
+import com.observability.sfdc.dto.TraceFlagDto
 import com.observability.sfdc.repository.TraceJobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -105,5 +106,41 @@ class TraceJobService(
                 refreshSalesforceTraceFlag(job)
             }
         }
+    }
+
+    @Transactional
+    fun adoptExistingTraceFlag(traceFlag: TraceFlagDto): TraceJob {
+        // Check if this SFDC TraceFlag is already managed by a local job
+        val existingJob = traceJobRepository.findAll().find { it.sfdcTraceFlagId == traceFlag.id }
+        if (existingJob != null) {
+            throw IllegalStateException("This Salesforce TraceFlag is already managed by Job #${existingJob.id}")
+        }
+
+        val now = Instant.now()
+        val startTime = if (traceFlag.startDate != null) {
+            ZonedDateTime.parse(traceFlag.startDate).toInstant()
+        } else {
+            now
+        }
+        val endTime = if (traceFlag.expirationDate != null) {
+            ZonedDateTime.parse(traceFlag.expirationDate).toInstant()
+        } else {
+            now.plus(Duration.ofHours(1))
+        }
+
+        val job = TraceJob(
+            tracedEntityId = traceFlag.tracedEntityId,
+            tracedEntityName = traceFlag.tracedEntity?.name,
+            tracedEntityType = traceFlag.tracedEntity?.attributes?.type ?: "User",
+            debugLevelName = traceFlag.debugLevel?.developerName ?: "Unknown",
+            startTime = startTime,
+            endTime = endTime,
+            status = if (endTime.isAfter(now)) "ACTIVE" else "EXPIRED",
+            sfdcTraceFlagId = traceFlag.id
+        )
+        
+        val savedJob = traceJobRepository.save(job)
+        logger.info("Adopted Salesforce TraceFlag ${traceFlag.id} as Job #${savedJob.id} (status: ${savedJob.status})")
+        return savedJob
     }
 }
