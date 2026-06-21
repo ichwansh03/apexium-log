@@ -180,11 +180,7 @@ class SalesforceLogService(
         records.forEach { 
             if (deleteLog(it.id)) count++
         }
-        
-        // Also clear local DB and MinIO just in case some were not in Salesforce but in local
-        // logRepository.deleteAll() // This might be too aggressive if we want to keep some metadata.
-        // Actually, the requirement is "Delete debug logs to avoid limited logs size in Salesforce".
-        
+
         return count
     }
 

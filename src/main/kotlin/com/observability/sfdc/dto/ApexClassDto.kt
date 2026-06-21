@@ -35,5 +35,8 @@ data class ApexClassDto(
     @JsonProperty("CreatedBy")
     val createdBy: UserSummaryDto?,
 
-    val coverage: ApexCodeCoverageDto? = null
+    val coverage: ApexCodeCoverageDto? = null,
+
+    @JsonProperty("Body")
+    val body: String? = null
 )
