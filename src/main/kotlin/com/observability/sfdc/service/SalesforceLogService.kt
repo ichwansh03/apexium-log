@@ -145,8 +145,13 @@ class SalesforceLogService(
 
     fun getActiveTraceFlags(): List<TraceFlagDto> {
         val now = ZonedDateTime.now(java.time.ZoneId.of("UTC")).format(sfdcFormatter)
-        val query = "SELECT Id, TracedEntityId, TracedEntity.Name, StartDate, ExpirationDate, DebugLevelId, DebugLevel.DeveloperName FROM TraceFlag WHERE ExpirationDate > $now"
+        val query = "SELECT Id, TracedEntityId, TracedEntity.Name, StartDate, ExpirationDate, DebugLevelId, DebugLevel.DeveloperName, LogType FROM TraceFlag WHERE ExpirationDate > $now"
         return querySalesforce("querying active TraceFlags", query, object : ParameterizedTypeReference<SalesforceQueryResult<TraceFlagDto>>() {})
+    }
+
+    fun getAllTraceFlags(): List<TraceFlagDto> {
+        val query = "SELECT Id, TracedEntityId, TracedEntity.Name, StartDate, ExpirationDate, DebugLevelId, DebugLevel.DeveloperName, LogType FROM TraceFlag ORDER BY ExpirationDate DESC"
+        return querySalesforce("querying all TraceFlags", query, object : ParameterizedTypeReference<SalesforceQueryResult<TraceFlagDto>>() {})
     }
 
     @Transactional

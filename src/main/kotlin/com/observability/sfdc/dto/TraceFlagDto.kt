@@ -75,7 +75,9 @@ data class TraceFlagDto(
     @JsonProperty("DebugLevelId")
     val debugLevelId: String?,
     @JsonProperty("DebugLevel")
-    val debugLevel: DebugLevelSummaryDto?
+    val debugLevel: DebugLevelSummaryDto?,
+    @JsonProperty("LogType")
+    val logType: String? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
