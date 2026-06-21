@@ -29,5 +29,8 @@ data class ApexTrigger(
     val createdByName: String?,
 
     val numLinesCovered: Int? = null,
-    val numLinesUncovered: Int? = null
+    val numLinesUncovered: Int? = null,
+
+    @Column(columnDefinition = "TEXT")
+    val body: String? = null
 )
