@@ -24,8 +24,11 @@ class SalesforceMetadataService(
     private val classRepository: ApexClassRepository,
     private val triggerRepository: ApexTriggerRepository,
     private val debugLevelRepository: DebugLevelRepository,
+    private val comparisonService: MetadataComparisonService,
     @Value($$"${salesforce.api-version}") apiVersion: String
 ) : SalesforceBaseService(authService, apiVersion) {
+
+    fun compareMetadata(entityId: String, type: String): List<String> = comparisonService.compareMetadata(entityId, type)
 
     @Cacheable(value = ["sf_metadata"], key = "'debug_levels_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
@@ -125,11 +128,13 @@ class SalesforceMetadataService(
             
             if (objectType == "ApexTrigger") {
                 val trigger = restTemplate.exchange(uri, HttpMethod.GET, HttpEntity<Unit>(createHeaders(token)), object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {}).body?.records?.firstOrNull() ?: return@executeWithToken null
+                trigger.body?.let { comparisonService.saveHistory(id, "ApexTrigger", it) }
                 MetadataDetailDto(trigger.id, trigger.name!!, "ApexTrigger", trigger.apiVersion, trigger.status, trigger.lastModifiedDate, trigger.lastModifiedBy?.name, trigger.tableEnumOrId, mapTriggerEvents(trigger), findRelatedTestClasses(
                     trigger.name
                 ), coverage, body = trigger.body)
             } else {
                 val apexClass = restTemplate.exchange(uri, HttpMethod.GET, HttpEntity<Unit>(createHeaders(token)), object : ParameterizedTypeReference<SalesforceQueryResult<ApexClassDto>>() {}).body?.records?.firstOrNull() ?: return@executeWithToken null
+                apexClass.body?.let { comparisonService.saveHistory(id, "ApexClass", it) }
                 MetadataDetailDto(apexClass.id, apexClass.name!!, "ApexClass", apexClass.apiVersion, apexClass.status, apexClass.lastModifiedDate, apexClass.lastModifiedBy?.name, testClasses = findRelatedTestClasses(
                     apexClass.name
                 ), coverage = coverage, body = apexClass.body)
