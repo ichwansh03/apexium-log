@@ -22,6 +22,15 @@ class SalesforceMetadataController(
     private val metadataService: SalesforceMetadataService
 ) {
 
+    @GetMapping("/compare/{type}/{id}")
+    @Operation(summary = "Compare Metadata", description = "Compares the current Apex class/trigger body with the previous version.")
+    fun compareMetadata(
+        @PathVariable type: String,
+        @PathVariable id: String
+    ): List<String> {
+        return metadataService.compareMetadata(id, type)
+    }
+
     @GetMapping("/details/{type}/{id}")
     @Operation(summary = "Get Metadata Details", description = "Retrieves deep details for a specific Apex class or trigger, including coverage and related test classes.")
     fun getMetadataDetails(
