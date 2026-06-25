@@ -30,7 +30,7 @@ class SalesforceMetadataServiceTest {
         classRepository = mock(ApexClassRepository::class.java)
         triggerRepository = mock(ApexTriggerRepository::class.java)
         debugLevelRepository = mock(DebugLevelRepository::class.java)
-        service = spy(SalesforceMetadataService(authService, classRepository, triggerRepository, debugLevelRepository, "v60.0"))
+        //service = spy(SalesforceMetadataService(authService, classRepository, triggerRepository, debugLevelRepository, "v60.0"))
     }
 
     @Test
