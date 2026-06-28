@@ -26,9 +26,7 @@ class SalesforceMetadataService(
     private val debugLevelRepository: DebugLevelRepository,
     private val comparisonService: MetadataComparisonService,
     @Value($$"${salesforce.api-version}") apiVersion: String
-) : SalesforceBaseService(authService, apiVersion) {
-
-    fun compareMetadata(entityId: String, type: String): List<String> = comparisonService.compareMetadata(entityId, type)
+    ) : SalesforceBaseService(authService, apiVersion) {
 
     @Cacheable(value = ["sf_metadata"], key = "'debug_levels_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
@@ -45,32 +43,25 @@ class SalesforceMetadataService(
         return records
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'apex_classes_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
-    @Transactional
-    fun getAllApexClasses(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
+    fun fetchApexClassesFromSalesforce(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexClassDto> {
         var query = "SELECT Id, Name, ApiVersion, Status, LengthWithoutComments, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name, Body FROM ApexClass WHERE Status = 'Active' "
         if (!name.isNullOrBlank()) {
             val escapedName = name.replace("'", "\\'")
             query += "AND Name LIKE '%$escapedName%' "
         }
         
-        // Exclude common test class patterns from the main list
         query += "AND (NOT Name LIKE '%Test') AND (NOT Name LIKE 'Test%') AND (NOT Name LIKE '%Tests') AND (NOT Name LIKE '%Mock') AND (NOT Name LIKE '%Factory') "
         query += "ORDER BY Name ASC LIMIT $limit OFFSET $offset"
         
         val records = querySalesforce("querying ApexClasses", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexClassDto>>() {})
         if (records.isNotEmpty()) {
             val coverageMap = fetchCoverageForMetadata(records.map { it.id })
-            val recordsWithCoverage = records.map { it.copy(coverage = coverageMap[it.id]) }
-            syncClassesToDatabase(recordsWithCoverage)
-            return recordsWithCoverage
+            return records.map { it.copy(coverage = coverageMap[it.id]) }
         }
         return records
     }
 
-    @Cacheable(value = ["sf_metadata"], key = "'apex_triggers_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
-    @Transactional
-    fun getAllApexTriggers(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> {
+    fun fetchApexTriggersFromSalesforce(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> {
         var query = "SELECT Id, Name, TableEnumOrId, ApiVersion, Status, UsageBeforeInsert, UsageBeforeUpdate, UsageBeforeDelete, UsageAfterInsert, UsageAfterUpdate, UsageAfterDelete, UsageAfterUndelete, LastModifiedDate, LastModifiedBy.Name, CreatedDate, CreatedBy.Name, Body FROM ApexTrigger WHERE Status = 'Active' "
         if (!name.isNullOrBlank()) {
             val escapedName = name.replace("'", "\\'")
@@ -81,12 +72,17 @@ class SalesforceMetadataService(
         val records = querySalesforce("querying ApexTriggers", query, object : ParameterizedTypeReference<SalesforceQueryResult<ApexTriggerDto>>() {})
         if (records.isNotEmpty()) {
             val coverageMap = fetchCoverageForMetadata(records.map { it.id })
-            val recordsWithCoverage = records.map { it.copy(coverage = coverageMap[it.id]) }
-            syncTriggersToDatabase(recordsWithCoverage)
-            return recordsWithCoverage
+            return records.map { it.copy(coverage = coverageMap[it.id]) }
         }
         return records
     }
+
+    @Cacheable(value = ["sf_metadata"], key = "'apex_classes_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
+    fun getAllApexClasses(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexClassDto> = fetchApexClassesFromSalesforce(name, limit, offset)
+
+    @Cacheable(value = ["sf_metadata"], key = "'apex_triggers_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
+    fun getAllApexTriggers(name: String? = null, limit: Int = 10, offset: Int = 0): List<ApexTriggerDto> = fetchApexTriggersFromSalesforce(name, limit, offset)
+
 
     private fun fetchCoverageForMetadata(ids: List<String>): Map<String, ApexCodeCoverageDto> {
         if (ids.isEmpty()) return emptyMap()
@@ -149,18 +145,18 @@ class SalesforceMetadataService(
     }
 
     // --- Sync Methods ---
-    @Transactional private fun syncDebugLevelsToDatabase(dtos: List<DebugLevelDto>) = dtos.distinctBy { it.id }.forEach { dto ->
+    internal fun syncDebugLevelsToDatabase(dtos: List<DebugLevelDto>) = dtos.distinctBy { it.id }.forEach { dto ->
         val entity = debugLevelRepository.findBySfdcId(dto.id).orElse(DebugLevel(sfdcId = dto.id, developerName = dto.developerName, masterLabel = dto.masterLabel, apexCode = dto.apexCode, apexProfiling = dto.apexProfiling, callout = dto.callout, database = dto.database, system = dto.system, validation = dto.validation, visualforce = dto.visualforce, workflow = dto.workflow))
         debugLevelRepository.save(entity.copy(developerName = dto.developerName, masterLabel = dto.masterLabel, apexCode = dto.apexCode, apexProfiling = dto.apexProfiling, callout = dto.callout, database = dto.database, system = dto.system, validation = dto.validation, visualforce = dto.visualforce, workflow = dto.workflow))
     }
 
-    @Transactional private fun syncClassesToDatabase(dtos: List<ApexClassDto>) = dtos.distinctBy { it.id }.forEach { dto ->
+    internal fun syncClassesToDatabase(dtos: List<ApexClassDto>) = dtos.distinctBy { it.id }.forEach { dto ->
         val entity = classRepository.findBySfdcId(dto.id).orElse(ApexClass(sfdcId = dto.id, name = dto.name, apiVersion = dto.apiVersion, status = dto.status, lengthWithoutComments = dto.lengthWithoutComments, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered, body = dto.body))
         classRepository.save(entity.copy(name = dto.name, apiVersion = dto.apiVersion, status = dto.status, lengthWithoutComments = dto.lengthWithoutComments, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered, body = dto.body))
         dto.body?.let { comparisonService.saveHistory(dto.id, "ApexClass", it) }
     }
 
-    @Transactional private fun syncTriggersToDatabase(dtos: List<ApexTriggerDto>) = dtos.distinctBy { it.id }.forEach { dto ->
+    internal fun syncTriggersToDatabase(dtos: List<ApexTriggerDto>) = dtos.distinctBy { it.id }.forEach { dto ->
         val entity = triggerRepository.findBySfdcId(dto.id).orElse(ApexTrigger(sfdcId = dto.id, name = dto.name, sobject = dto.tableEnumOrId, apiVersion = dto.apiVersion, status = dto.status, usageBeforeInsert = dto.usageBeforeInsert, usageBeforeUpdate = dto.usageBeforeUpdate, usageBeforeDelete = dto.usageBeforeDelete, usageAfterInsert = dto.usageAfterInsert, usageAfterUpdate = dto.usageAfterUpdate, usageAfterDelete = dto.usageAfterDelete, usageAfterUndelete = dto.usageAfterUndelete, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered, body = dto.body))
         triggerRepository.save(entity.copy(name = dto.name, sobject = dto.tableEnumOrId, apiVersion = dto.apiVersion, status = dto.status, usageBeforeInsert = dto.usageBeforeInsert, usageBeforeUpdate = dto.usageBeforeUpdate, usageBeforeDelete = dto.usageBeforeDelete, usageAfterInsert = dto.usageAfterInsert, usageAfterUpdate = dto.usageAfterUpdate, usageAfterDelete = dto.usageAfterDelete, usageAfterUndelete = dto.usageAfterUndelete, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered, body = dto.body))
         dto.body?.let { comparisonService.saveHistory(dto.id, "ApexTrigger", it) }
