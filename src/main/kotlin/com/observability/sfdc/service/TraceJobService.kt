@@ -20,6 +20,7 @@ class TraceJobService(
 ) {
     private val logger = LoggerFactory.getLogger(TraceJobService::class.java)
     private val sfdcFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    private val sfdcWithOffsetFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
     @Transactional
     fun createJob(request: FrontendTraceFlagRequest): TraceJob {
@@ -52,6 +53,8 @@ class TraceJobService(
     }
 
     fun getAllJobs(): List<TraceJob> = traceJobRepository.findAll()
+
+    fun searchJobsByName(name: String): List<TraceJob> = traceJobRepository.findByTracedEntityNameContainingIgnoreCase(name)
 
     @Transactional
     fun cancelJob(id: Long) {
@@ -118,12 +121,12 @@ class TraceJobService(
 
         val now = Instant.now()
         val startTime = if (traceFlag.startDate != null) {
-            ZonedDateTime.parse(traceFlag.startDate).toInstant()
+            ZonedDateTime.parse(traceFlag.startDate, sfdcWithOffsetFormatter).toInstant()
         } else {
             now
         }
         val endTime = if (traceFlag.expirationDate != null) {
-            ZonedDateTime.parse(traceFlag.expirationDate).toInstant()
+            ZonedDateTime.parse(traceFlag.expirationDate, sfdcWithOffsetFormatter).toInstant()
         } else {
             now.plus(Duration.ofHours(1))
         }

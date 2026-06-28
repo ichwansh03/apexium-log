@@ -133,8 +133,12 @@ class SalesforceLogController(
 
     @GetMapping("/trace-jobs")
     @Operation(summary = "Get All Trace Jobs", description = "Lists all trace jobs (active, completed, cancelled) managed by the application.")
-    fun getTraceJobs(): List<TraceJob> {
-        return traceJobService.getAllJobs()
+    fun getTraceJobs(@RequestParam(required = false) targetName: String?): List<TraceJob> {
+        return if (!targetName.isNullOrBlank()) {
+            traceJobService.searchJobsByName(targetName)
+        } else {
+            traceJobService.getAllJobs()
+        }
     }
 
     @PostMapping("/trace-jobs/adopt")

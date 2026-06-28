@@ -8,4 +8,5 @@ import java.util.*
 @Repository
 interface TraceJobRepository : JpaRepository<TraceJob, Long> {
     fun findByStatus(status: String): List<TraceJob>
+    fun findByTracedEntityNameContainingIgnoreCase(name: String): List<TraceJob>
 }
