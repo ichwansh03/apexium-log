@@ -95,13 +95,25 @@ class SalesforceMetadataService(
     // --- Search methods ---
     fun searchClasses(name: String?, limit: Int = 10, offset: Int = 0): List<ApexClass> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
-        if (!name.isNullOrBlank()) getAllApexClasses(name, 200, 0) else if (classRepository.count() == 0L) getAllApexClasses(null, 200, 0)
+        if (!name.isNullOrBlank()) {
+            val dtos = fetchApexClassesFromSalesforce(name, 200, 0)
+            syncClassesToDatabase(dtos)
+        } else if (classRepository.count() == 0L) {
+            val dtos = fetchApexClassesFromSalesforce(null, 200, 0)
+            syncClassesToDatabase(dtos)
+        }
         return if (name.isNullOrBlank()) classRepository.findAllProjectedBy(pageable) else classRepository.findByNameContainingIgnoreCase(name, pageable)
     }
 
     fun searchTriggers(name: String?, limit: Int = 10, offset: Int = 0): List<ApexTrigger> {
         val pageable = PageRequest.of(offset / limit, limit, Sort.by("name").ascending())
-        if (!name.isNullOrBlank()) getAllApexTriggers(name, 200, 0) else if (triggerRepository.count() == 0L) getAllApexTriggers(null, 200, 0)
+        if (!name.isNullOrBlank()) {
+            val dtos = fetchApexTriggersFromSalesforce(name, 200, 0)
+            syncTriggersToDatabase(dtos)
+        } else if (triggerRepository.count() == 0L) {
+            val dtos = fetchApexTriggersFromSalesforce(null, 200, 0)
+            syncTriggersToDatabase(dtos)
+        }
         return if (name.isNullOrBlank()) triggerRepository.findAllProjectedBy(pageable) else triggerRepository.findByNameContainingIgnoreCaseOrSobjectContainingIgnoreCase(name, name, pageable)
     }
 
