@@ -1,6 +1,6 @@
 package com.observability.sfdc.service
 
-import com.github.difflib.DiffUtils
+import com.observability.sfdc.dto.MetadataDiffDto
 import com.observability.sfdc.domain.MetadataHistory
 import com.observability.sfdc.repository.ApexClassRepository
 import com.observability.sfdc.repository.ApexTriggerRepository
@@ -16,7 +16,7 @@ class MetadataComparisonService(
 ) {
 
     @Transactional(readOnly = true)
-    fun compareMetadata(entityId: String, type: String): List<String> {
+    fun compareMetadata(entityId: String, type: String): MetadataDiffDto {
         val latestBody = when (type) {
             "ApexClass" -> classRepository.findBySfdcId(entityId).orElse(null)?.body
             "ApexTrigger" -> triggerRepository.findBySfdcId(entityId).orElse(null)?.body
@@ -26,10 +26,7 @@ class MetadataComparisonService(
         val previousHistory = historyRepository.findTopBySfdcIdAndEntityTypeOrderByCreatedAtDesc(entityId, type)
         val previousBody = previousHistory?.body ?: ""
 
-        val patch = DiffUtils.diff(previousBody.lines(), latestBody.lines())
-        
-        // Convert to a simple list of diff strings for now
-        return patch.deltas.map { delta -> delta.toString() }
+        return MetadataDiffDto(previousBody = previousBody, latestBody = latestBody)
     }
     
     @Transactional

@@ -29,7 +29,7 @@ class SalesforceMetadataController(
     fun compareMetadata(
         @PathVariable type: String,
         @PathVariable id: String
-    ): List<String> {
+    ): com.observability.sfdc.dto.MetadataDiffDto {
         return comparisonService.compareMetadata(id, type)
     }
 
