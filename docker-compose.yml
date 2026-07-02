@@ -66,31 +66,31 @@ services:
     networks:
       - sfdc-network
 
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    networks:
-      - sfdc-network
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #   networks:
+  #     - sfdc-network
 
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
-    networks:
-      - sfdc-network
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #   depends_on:
+  #     - prometheus
+  #   networks:
+  #     - sfdc-network
 
 networks:
   sfdc-network:
