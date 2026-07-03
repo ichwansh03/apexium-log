@@ -43,7 +43,8 @@ class SalesforceLogPollingService(
                         logSize = dto.logLength,
                         duration = dto.durationMilliseconds,
                         status = dto.status,
-                        request = dto.request
+                        request = dto.request,
+                        body = body
                     )
                     logRepository.save(log)
                     newLogsCount++

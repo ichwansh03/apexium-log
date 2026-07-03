@@ -4,7 +4,12 @@ import jakarta.persistence.*
 import java.time.Instant
 
 @Entity
-@Table(name = "logs")
+@Table(name = "logs", indexes = [
+    Index(name = "idx_logs_apex_class_name", columnList = "apex_class_name"),
+    Index(name = "idx_logs_author_name", columnList = "author_name"),
+    Index(name = "idx_logs_request_time", columnList = "request_time"),
+    Index(name = "idx_logs_sfdc_id", columnList = "sfdc_id")
+])
 data class Log(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,5 +40,8 @@ data class Log(
     val status: String? = null,
 
     @Column(name = "request")
-    val request: String? = null
+    val request: String? = null,
+
+    @Column(name = "body", columnDefinition = "TEXT")
+    val body: String? = null
 )
