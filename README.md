@@ -1,13 +1,19 @@
 # Apexium.log
 
-A real-time observability platform built with Kotlin and Spring Boot to centralize, monitor, and analyze Salesforce debug logs and system events.
+a Salesforce developer productivity tool designed to simplify Debug Log management, automate Trace Flag scheduling, monitor Apex code coverage, track metadata changes, and retain debugging history beyond Salesforce's native limitations. It helps developers spend less time managing logs and more time building reliable applications.
 
-## Project Goals
+## Features
 
-- **Centralized Visibility**: Aggregate logs from multiple Salesforce environments into a single backend service.
-- **Real-time Monitoring**: Use Salesforce Streaming API (CometD) to react to log events the moment they are generated.
-- **Deep Inspection**: Automatically fetch full `ApexLog` bodies using the Tooling API for detailed root-cause analysis.
-- **Scalable Processing**: Provide a robust Kotlin-based foundation to filter, transform, and forward logs to external observability tools (e.g., ELK, Splunk, Datadog).
+* 🚀 **Centralized Debug Log Management** to manage, search, download, and delete Salesforce Debug Logs from a single interface, making debugging more efficient.
+* ⏰ **Automated Recurring Trace Flags** to automatically extend user trace sessions beyond Salesforce's 24-hour Trace Flag limitation.
+* 📊 **Apex Code Coverage Reports** to view code coverage for all Apex Classes and Triggers in a centralized dashboard, helping ensure deployment readiness.
+* 🔍 **Metadata Change Tracking** to detect and compare changes in Apex Classes and Triggers through metadata body comparison, making code changes easier to review.
+* ♻️ **Reusable Debug Sessions** to quickly reuse previously configured Trace Flags and debugging settings without repeating manual configuration.
+* 🗃️ **Extended Debug Log Retention** to retain Debug Logs for up to 30 days, even after they have expired or been removed from Salesforce.
+* ⚡ **Faster Root Cause Analysis** by combining Debug Log history, metadata changes, and trace information in a single application for quicker issue investigation.
+* 📈 **Improved Developer Productivity** by automating repetitive tasks such as Trace Flag scheduling, Debug Log cleanup, and code coverage monitoring.
+* 🛡️ **Reduced Debug Log Storage Issues** through selective or bulk Debug Log cleanup, helping prevent Salesforce storage limit issues.
+* 🎯 **Built for Salesforce Developers** who need an all-in-one solution for debugging, monitoring, and tracking Apex code changes.
 
 ## Architecture Design
 
