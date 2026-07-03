@@ -1,7 +1,7 @@
 package com.observability.sfdc.service
 
-import com.observability.sfdc.dto.MetadataDiffDto
 import com.observability.sfdc.domain.MetadataHistory
+import com.observability.sfdc.dto.MetadataDiffDto
 import com.observability.sfdc.repository.ApexClassRepository
 import com.observability.sfdc.repository.ApexTriggerRepository
 import com.observability.sfdc.repository.MetadataHistoryRepository
