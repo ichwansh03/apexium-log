@@ -82,21 +82,30 @@ class SalesforceLogService(
     }
 
     fun getLogBody(logId: String): String? {
-        // 1. Try MinIO first
+        // 1. Try PostgreSQL first
+        val dbLog = logRepository.findBySfdcId(logId)
+        if (dbLog.isPresent && dbLog.get().body != null) {
+            return dbLog.get().body
+        }
+
+        // 2. Try MinIO next
         val cachedBody = minioService.downloadLog(logId)
         if (cachedBody != null) {
             return cachedBody
         }
 
-        // 2. Fallback to Salesforce Tooling API
+        // 3. Fallback to Salesforce Tooling API
         val body = executeWithToken("fetching log body for $logId from Salesforce", null) { token, instanceUrl ->
             val url = buildUri(instanceUrl, "sobjects/ApexLog/$logId/Body").build().toUriString()
             restTemplate.exchange(url, HttpMethod.GET, HttpEntity<Unit>(createHeaders(token)), String::class.java).body
         }
 
-        // 3. Store in MinIO for future use
+        // 4. Store in MinIO and PostgreSQL for future use
         if (body != null) {
             minioService.uploadLog(logId, body)
+            logRepository.findBySfdcId(logId).ifPresent { log ->
+                logRepository.save(log.copy(body = body))
+            }
         }
         
         return body
