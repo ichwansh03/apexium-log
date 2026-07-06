@@ -163,14 +163,18 @@ class SalesforceMetadataService(
 
     internal fun syncClassesToDatabase(dtos: List<ApexClassDto>) = dtos.distinctBy { it.id }.forEach { dto ->
         val entity = classRepository.findBySfdcId(dto.id).orElse(ApexClass(sfdcId = dto.id, name = dto.name, apiVersion = dto.apiVersion, status = dto.status, lengthWithoutComments = dto.lengthWithoutComments, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered, body = dto.body))
+        if (entity.body != null && entity.body != dto.body) {
+            comparisonService.saveHistory(dto.id, "ApexClass", entity.body!!)
+        }
         classRepository.save(entity.copy(name = dto.name, apiVersion = dto.apiVersion, status = dto.status, lengthWithoutComments = dto.lengthWithoutComments, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered, body = dto.body))
-        dto.body?.let { comparisonService.saveHistory(dto.id, "ApexClass", it) }
     }
 
     internal fun syncTriggersToDatabase(dtos: List<ApexTriggerDto>) = dtos.distinctBy { it.id }.forEach { dto ->
         val entity = triggerRepository.findBySfdcId(dto.id).orElse(ApexTrigger(sfdcId = dto.id, name = dto.name, sobject = dto.tableEnumOrId, apiVersion = dto.apiVersion, status = dto.status, usageBeforeInsert = dto.usageBeforeInsert, usageBeforeUpdate = dto.usageBeforeUpdate, usageBeforeDelete = dto.usageBeforeDelete, usageAfterInsert = dto.usageAfterInsert, usageAfterUpdate = dto.usageAfterUpdate, usageAfterDelete = dto.usageAfterDelete, usageAfterUndelete = dto.usageAfterUndelete, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered, body = dto.body))
+        if (entity.body != null && entity.body != dto.body) {
+            comparisonService.saveHistory(dto.id, "ApexTrigger", entity.body!!)
+        }
         triggerRepository.save(entity.copy(name = dto.name, sobject = dto.tableEnumOrId, apiVersion = dto.apiVersion, status = dto.status, usageBeforeInsert = dto.usageBeforeInsert, usageBeforeUpdate = dto.usageBeforeUpdate, usageBeforeDelete = dto.usageBeforeDelete, usageAfterInsert = dto.usageAfterInsert, usageAfterUpdate = dto.usageAfterUpdate, usageAfterDelete = dto.usageAfterDelete, usageAfterUndelete = dto.usageAfterUndelete, lastModifiedDate = dto.lastModifiedDate, lastModifiedByName = dto.lastModifiedBy?.name, createdDate = dto.createdDate, createdByName = dto.createdBy?.name, numLinesCovered = dto.coverage?.numLinesCovered, numLinesUncovered = dto.coverage?.numLinesUncovered, body = dto.body))
-        dto.body?.let { comparisonService.saveHistory(dto.id, "ApexTrigger", it) }
     }
 
     private fun mapTriggerEvents(dto: ApexTriggerDto) = listOfNotNull(if (dto.usageBeforeInsert == true) "Before Insert" else null, if (dto.usageBeforeUpdate == true) "Before Update" else null, if (dto.usageBeforeDelete == true) "Before Delete" else null, if (dto.usageAfterInsert == true) "After Insert" else null, if (dto.usageAfterUpdate == true) "After Update" else null, if (dto.usageAfterDelete == true) "After Delete" else null, if (dto.usageAfterUndelete == true) "After Undelete" else null)
