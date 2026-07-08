@@ -17,83 +17,118 @@ a Salesforce developer productivity tool designed to simplify Debug Log manageme
 
 ## Architecture Design
 
-The system follows a reactive architecture to handle the asynchronous nature of Salesforce log generation.
+The system periodically fetches logs and metadata from Salesforce via REST and Tooling APIs, stores them in PostgreSQL and MinIO, and exposes everything through a React frontend.
 
 ### Visual Workflow
 ```text
-+----------------+       Streaming API       +----------------+
-|   Salesforce   | ------------------------> |  CometD Client |
-| (TraceFlags &  |      (PushTopic)          | (Kotlin/Jetty) |
-|  PushTopic)    |                           +-------+--------+
-+-------^--------+                                   |
-        |                                            | Log Event
-        |            Tooling API / REST              v
-        +------------------------------------ [ Kotlin Backend ]
-               (Fetch Metadata & Body)               |
-                                                     | Processed Log
-                                                     v
-                                             +----------------+
-                                             |  Observability |
-                                             |     Stack      |
-                                             +----------------+
++----------------+      Tooling / REST API      +-------------------+
+|   Salesforce   | <----------------------------> |  Kotlin Backend  |
+| (ApexLogs,     |   (Poll logs & metadata)      |  (Spring Boot)   |
+|  ApexClass,    |                                |                   |
+|  ApexTrigger,  |                                +---------+---------+
+|  TraceFlag)    |                                          |
++----------------+                          +---------------+---------------+
+                                            |               |               |
+                                            v               v               v
+                                    +-----------+   +-----------+   +---------------+
+                                    | PostgreSQL |   |   MinIO   |   |    Redis      |
+                                    | (Metadata, |   | (Log Body |   |  (Cache,      |
+                                    |  History,  |   |  Storage) |   |   Sessions)   |
+                                    |  Jobs)     |   |           |   |               |
+                                    +-----------+   +-----------+   +---------------+
+                                            |
+                                            v
+                                    +---------------+
+                                    | React Frontend|
+                                    | (TypeScript)  |
+                                    +---------------+
 ```
 
 ### Technical Flow (Mermaid)
 ```mermaid
 graph TD
-    SFDC[Salesforce] -- Streaming API / PushTopic --> CometD[CometD Client]
-    CometD -- Log Event --> Ktor[Kotlin Backend]
-    Ktor -- Query Metadata --> ToolingAPI[SFDC Tooling API]
-    ToolingAPI -- Log ID --> Ktor
-    Ktor -- Download Body --> ToolingAPI
-    Ktor -- Processed Log --> Storage[External Observability Stack]
+    SFDC[Salesforce] -- Tooling/REST API --> Backend[Kotlin Backend]
+    Backend -- Poll Logs & Store --> PG[(PostgreSQL)]
+    Backend -- Store Log Body --> MinIO[(MinIO)]
+    Backend -- Cache --> Redis[(Redis)]
+    Backend -- Serve Data --> FE[React Frontend]
+    FE -- User Actions --> Backend
 ```
 
 ### Components
 
-1.  **Salesforce (Source)**:
-    *   **TraceFlags**: Configured to capture logs for specific users/classes.
-    *   **PushTopic**: Broadcasts notifications when new `ApexLog` or custom log records are created.
-2.  **Kotlin Integration Service**:
-    *   **CometD Client**: Maintains a long-polling connection to Salesforce Streaming API.
-    *   **Log Processor**: Orchestrates the fetching of log bodies and performs initial parsing.
-    *   **Tooling/REST Client**: Communicates with Salesforce APIs for metadata and log retrieval.
-3.  **Observability Layer (Optional)**:
-    *   The processed logs can be forwarded to tools like Elasticsearch, CloudWatch, or custom dashboards.
+1.  **Salesforce (Source)**: Source of ApexLogs, ApexClass, ApexTrigger, TraceFlag, and DebugLevel metadata. Accessed via REST and Tooling APIs.
+2.  **Kotlin Backend (Spring Boot)**: Polls Salesforce periodically for new logs and metadata changes. Stores processed data in PostgreSQL and MinIO. Exposes REST APIs for the frontend.
+3.  **PostgreSQL**: Stores log metadata, Apex class/trigger info, code coverage, metadata history (for diff comparison), trace jobs, and debug levels.
+4.  **MinIO**: Stores full debug log body files for long-term retention beyond Salesforce's 24-hour window.
+5.  **Redis**: Caching layer for Salesforce access tokens and metadata queries.
+6.  **React Frontend**: TypeScript-based dashboard for viewing logs, managing traces, comparing metadata, and monitoring coverage.
 
 ## Tech Stack
 
-- **Language**: Kotlin 2.2.21
-- **Framework**: Spring Boot 4.0.6
-- **Communication**: 
-    - CometD (Bayeux Protocol) for real-time events.
-    - Salesforce Tooling & REST API for data retrieval.
-- **Build Tool**: Maven
+- **Backend**: Kotlin 2.1.0, Spring Boot 4.0.6
+- **Frontend**: React 19, TypeScript, Vite
+- **Database**: PostgreSQL 17, Redis (Alpine)
+- **Storage**: MinIO (S3-compatible object storage)
+- **Build Tools**: Maven (backend), npm (frontend)
+- **Communication**: Salesforce REST API & Tooling API
 
 ## Getting Started
 
-1.  **Salesforce Setup**: Ensure you have a `PushTopic` created and `TraceFlags` active in your Salesforce org.
-2.  **Environment Configuration**: To avoid hardcoding sensitive information like `client_id` and `client_secret` in `application.properties`, create a `.env` file in the root directory. Follow this structure:
+### Prerequisites
+
+- Java 21+
+- Node.js (Latest LTS)
+- Docker & Docker Compose (for PostgreSQL, Redis, MinIO)
+
+### Setup
+
+1.  **Salesforce Setup**: Create a Connected App in your Salesforce org with OAuth 2.0 Client Credentials flow enabled. Note the Consumer Key (`client_id`) and Consumer Secret (`client_secret`).
+
+2.  **Environment Configuration**: Create a `.env` file in the root directory:
     ```bash
     # Salesforce Configuration
-    SALESFORCE_INSTANCE_ORG=https://login.salesforce.com
+    SALESFORCE_INSTANCE_ORG=https://your-instance.sandbox.my.salesforce.com
     SALESFORCE_CLIENT_ID=your_client_id
     SALESFORCE_CLIENT_SECRET=your_client_secret
-    SALESFORCE_GRANT_TYPE=password # or your preferred grant type
-    SALESFORCE_API_VERSION=v60.0
+    SALESFORCE_GRANT_TYPE=client_credentials
+    SALESFORCE_API_VERSION=v61.0
+
+    # MinIO Configuration
+    MINIO_URL=http://minio:9000
+    MINIO_ACCESS_KEY=your_access_key
+    MINIO_SECRET_KEY=your_secret_key
+    MINIO_ROOT_USER=your_root_user
+    MINIO_ROOT_PASSWORD=your_root_password
+    MINIO_BUCKET_NAME=sfdc-bucket
 
     # Database Configuration
-    DB_HOST=localhost
+    DB_HOST=db
     DB_PORT=5432
     DB_NAME=sfdc_logs
-    DB_USER=postgres
-    DB_PASSWORD=postgres
-
-    # Redis Configuration
-    REDIS_HOST=localhost
-    REDIS_PORT=6379
+    DB_USER=your_db_user
+    DB_PASSWORD=your_db_pw
     ```
-3.  **Run Application**: Ensure your local database (PostgreSQL) and Redis are running, then start the application using Maven.
+
+3.  **Start Infrastructure** (PostgreSQL, Redis, MinIO):
+    ```bash
+    docker compose up -d --build
+    ```
+
+4.  **Run Backend**:
+    ```bash
+    ./mvnw spring-boot:run
+    ```
+
+5.  **Run Frontend** (in a separate terminal):
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+
+6.  Open [http://localhost:5173](http://localhost:5173) to access the dashboard.
+
 ## Monitoring & API Documentation
 
 The project includes built-in observability and interactive documentation tools.
