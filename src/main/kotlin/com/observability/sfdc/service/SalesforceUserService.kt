@@ -22,7 +22,7 @@ class SalesforceUserService(
     @Cacheable(value = ["sf_users"], key = "'all_users_' + (#name ?: 'all') + '_' + #limit + '_' + #offset", unless = "#result == null")
     @Transactional
     fun getAllUsers(name: String? = null, limit: Int = 10, offset: Int = 0): List<SalesforceUserDto> {
-        var query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE ((IsActive = TRUE AND Entity__c = 'AMFS') OR Name = 'Automated Process') "
+        var query = "SELECT Id, Name, Username, Email, Profile.Name, IsActive, Entity__c FROM User WHERE IsActive = TRUE OR Name = 'Automated Process' "
         if (!name.isNullOrBlank()) {
             val escapedName = name.replace("'", "\\'")
             query += "AND Name LIKE '%$escapedName%' "
