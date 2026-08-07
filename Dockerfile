@@ -1,5 +1,5 @@
 # Build stage
-FROM eclipse-temurin:21-jdk-jammy AS build
+FROM eclipse-temurin:25-jdk-jammy AS build
 WORKDIR /app
 
 # Copy the maven wrapper and pom.xml first to leverage Docker cache
@@ -13,7 +13,7 @@ COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
 # Run stage
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 WORKDIR /app
 
 # Copy the built jar from the build stage
