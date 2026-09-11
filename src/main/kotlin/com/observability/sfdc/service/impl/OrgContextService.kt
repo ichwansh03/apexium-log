@@ -1,7 +1,8 @@
-package com.observability.sfdc.service
+package com.observability.sfdc.service.impl
 
 import com.observability.sfdc.dto.SalesforceTokenResponse
 import org.slf4j.LoggerFactory
+import org.springframework.data.redis.core.ScanOptions
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
 
@@ -17,9 +18,7 @@ class OrgContextService(
     private var currentOrgId: String? = null
 
     fun getActiveOrgId(): String {
-        return currentOrgId
-            ?: redisTemplate.opsForValue().get(ACTIVE_ORG_KEY)
-            ?: "UNKNOWN_ORG"
+        return currentOrgId ?: redisTemplate.opsForValue().get(ACTIVE_ORG_KEY) ?: "UNKNOWN_ORG"
     }
 
     fun ensureActiveOrg(tokenResponse: SalesforceTokenResponse) {
@@ -29,8 +28,7 @@ class OrgContextService(
             return
         }
 
-        val previousOrgId = currentOrgId
-            ?: redisTemplate.opsForValue().get(ACTIVE_ORG_KEY)
+        val previousOrgId = currentOrgId ?: redisTemplate.opsForValue().get(ACTIVE_ORG_KEY)
 
         currentOrgId = orgId
         redisTemplate.opsForValue().set(ACTIVE_ORG_KEY, orgId)
@@ -59,8 +57,7 @@ class OrgContextService(
 
     private fun scanKeys(pattern: String): List<String> {
         val keys = mutableListOf<String>()
-        val scanOptions = org.springframework.data.redis.core.ScanOptions.scanOptions()
-            .match(pattern).count(200).build()
+        val scanOptions = ScanOptions.scanOptions().match(pattern).count(200).build()
 
         redisTemplate.executeWithStickyConnection { connection ->
             val cursor = connection.scan(scanOptions)
@@ -76,13 +73,12 @@ class OrgContextService(
     companion object {
         fun extractOrgId(tokenResponse: SalesforceTokenResponse): String? {
             val idUrl = tokenResponse.id ?: return null
-            // Identity URL format: https://login.salesforce.com/id/00Dxx0000006XXXX/005xx000001XXXXX
-            // or: https://test.salesforce.com/id/...
+
             return try {
                 val path = idUrl.substringAfter("/id/")
                 val segments = path.split("/")
-                if (segments.size >= 1) segments[0] else null
-            } catch (e: Exception) {
+                if (segments.isNotEmpty()) segments[0] else null
+            } catch (_: Exception) {
                 null
             }
         }

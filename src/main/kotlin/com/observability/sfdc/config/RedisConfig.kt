@@ -22,7 +22,7 @@ class RedisConfig(
     fun cacheManager(connectionFactory: RedisConnectionFactory): CacheManager {
         val serializer = GenericJackson2JsonRedisSerializer()
 
-        val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+        val redisConfig = RedisCacheConfiguration.defaultCacheConfig()
             .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer()))
             .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
             .entryTtl(Duration.ofSeconds(metadataTtl)) // Default TTL
@@ -30,12 +30,12 @@ class RedisConfig(
         val cacheConfigs = mutableMapOf<String, RedisCacheConfiguration>()
 
         // Custom TTL for specific caches
-        cacheConfigs["sf_tokens"] = defaultConfig.entryTtl(Duration.ofSeconds(tokenTtl))
-        cacheConfigs["sf_metadata"] = defaultConfig.entryTtl(Duration.ofSeconds(metadataTtl))
-        cacheConfigs["sf_users"] = defaultConfig.entryTtl(Duration.ofSeconds(metadataTtl))
+        cacheConfigs["sf_tokens"] = redisConfig.entryTtl(Duration.ofSeconds(tokenTtl))
+        cacheConfigs["sf_metadata"] = redisConfig.entryTtl(Duration.ofSeconds(metadataTtl))
+        cacheConfigs["sf_users"] = redisConfig.entryTtl(Duration.ofSeconds(metadataTtl))
 
         return RedisCacheManager.builder(connectionFactory)
-            .cacheDefaults(defaultConfig)
+            .cacheDefaults(redisConfig)
             .withInitialCacheConfigurations(cacheConfigs)
             .build()
     }

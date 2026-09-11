@@ -9,7 +9,8 @@ import javax.sql.DataSource
 @Component("appHealthIndicator")
 class AppHealthIndicator(
     private val dataSource: DataSource,
-    private val redisConnectionFactory: RedisConnectionFactory
+    private val redisConnectionFactory: RedisConnectionFactory,
+    private val authStatus: SalesforceAuthStatus
 ) : SpringHealthIndicator {
 
     override fun health(): Health {
@@ -31,6 +32,18 @@ class AppHealthIndicator(
             builder.withDetail("redis", "UP")
         } catch (e: Exception) {
             builder.down().withDetail("redis", "DOWN: ${e.message}")
+        }
+
+        // Check Salesforce
+        if (authStatus.lastSuccess) {
+            builder.withDetail("Salesforce", "UP")
+                .withDetail("lastCheckedAt", "${authStatus.lastCheckedAt}")
+                .build()
+        } else {
+            builder.down()
+                .withDetail("Salesforce", "DOWN: ${authStatus.lastError}")
+                .withDetail("lastCheckedAt", "${authStatus.lastCheckedAt}")
+                .build()
         }
 
         return builder.build()

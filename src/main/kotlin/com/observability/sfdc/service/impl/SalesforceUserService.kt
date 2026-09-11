@@ -4,7 +4,7 @@ import com.observability.sfdc.domain.User
 import com.observability.sfdc.dto.SalesforceQueryResult
 import com.observability.sfdc.dto.SalesforceUserDto
 import com.observability.sfdc.repository.UserRepository
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
 import com.observability.sfdc.service.SalesforceBaseService
 import com.observability.sfdc.service.UserService
 import org.springframework.beans.factory.annotation.Value
