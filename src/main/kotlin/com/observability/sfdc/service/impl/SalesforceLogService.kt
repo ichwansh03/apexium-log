@@ -7,7 +7,7 @@ import com.observability.sfdc.exception.ValidationException
 import com.observability.sfdc.repository.DebugLevelRepository
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.ApexLogService
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
 import com.observability.sfdc.service.TraceFlagService
 import com.observability.sfdc.service.SalesforceBaseService
 import org.springframework.beans.factory.annotation.Value

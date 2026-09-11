@@ -1,6 +1,6 @@
 package com.observability.sfdc.controller
 
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity

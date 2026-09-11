@@ -1,7 +1,7 @@
 package com.observability.sfdc.service.impl
 
 import com.observability.sfdc.repository.LogRepository
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled

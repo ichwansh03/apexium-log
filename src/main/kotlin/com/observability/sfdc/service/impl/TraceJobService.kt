@@ -7,7 +7,7 @@ import com.observability.sfdc.exception.ConflictException
 import com.observability.sfdc.exception.ResourceNotFoundException
 import com.observability.sfdc.exception.ValidationException
 import com.observability.sfdc.repository.TraceJobRepository
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
 import com.observability.sfdc.service.TraceFlagService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service

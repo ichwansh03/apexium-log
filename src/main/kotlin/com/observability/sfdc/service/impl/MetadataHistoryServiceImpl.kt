@@ -5,7 +5,7 @@ import com.observability.sfdc.dto.MetadataHistoryDto
 import com.observability.sfdc.exception.ResourceNotFoundException
 import com.observability.sfdc.repository.MetadataHistoryRepository
 import com.observability.sfdc.service.MetadataHistoryService
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 

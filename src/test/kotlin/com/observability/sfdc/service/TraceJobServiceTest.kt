@@ -3,6 +3,7 @@ package com.observability.sfdc.service
 import com.observability.sfdc.domain.TraceJob
 import com.observability.sfdc.dto.FrontendTraceFlagRequest
 import com.observability.sfdc.repository.TraceJobRepository
+import com.observability.sfdc.service.impl.OrgContextService
 import com.observability.sfdc.service.impl.TraceJobService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

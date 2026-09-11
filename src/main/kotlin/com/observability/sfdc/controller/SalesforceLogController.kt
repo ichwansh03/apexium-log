@@ -8,7 +8,7 @@ import com.observability.sfdc.dto.SalesforceCreateResponse
 import com.observability.sfdc.dto.TraceFlagDto
 import com.observability.sfdc.repository.LogRepository
 import com.observability.sfdc.service.ApexLogService
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
 import com.observability.sfdc.service.TraceFlagService
 import com.observability.sfdc.service.impl.TraceJobService
 import io.swagger.v3.oas.annotations.Operation

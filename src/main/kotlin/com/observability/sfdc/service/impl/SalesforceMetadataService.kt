@@ -17,7 +17,7 @@ import com.observability.sfdc.service.ApexClassMetadataService
 import com.observability.sfdc.service.ApexTriggerMetadataService
 import com.observability.sfdc.service.DebugLevelMetadataService
 import com.observability.sfdc.service.MetadataDetailService
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
 import com.observability.sfdc.service.ReportMetadataService
 import com.observability.sfdc.util.ReportToSoqlConverter
 import com.observability.sfdc.service.SalesforceBaseService

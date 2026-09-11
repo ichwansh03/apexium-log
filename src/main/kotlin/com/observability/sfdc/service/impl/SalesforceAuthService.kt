@@ -2,7 +2,8 @@ package com.observability.sfdc.service.impl
 
 import com.observability.sfdc.dto.SalesforceTokenResponse
 import com.observability.sfdc.service.AuthService
-import com.observability.sfdc.service.OrgContextService
+import com.observability.sfdc.service.impl.OrgContextService
+import com.observability.sfdc.util.SalesforceAuthStatus
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
@@ -17,6 +18,7 @@ import org.springframework.web.client.RestTemplate
 @Service
 class SalesforceAuthService(
     private val orgContextService: OrgContextService,
+    private val authStatus: SalesforceAuthStatus,
     @Value($$"${salesforce.login-url}") private val loginUrl: String,
     @Value($$"${salesforce.client-id}") private val clientId: String,
     @Value($$"${salesforce.client-secret}") private val clientSecret: String,
@@ -25,11 +27,7 @@ class SalesforceAuthService(
     private val restTemplate = RestTemplate()
     private val logger = LoggerFactory.getLogger(SalesforceAuthService::class.java)
 
-    @Cacheable(
-        value = ["sf_tokens"],
-        key = "@orgContextService.getActiveOrgId() + ':token'",
-        unless = "#result == null"
-    )
+    @Cacheable(value = ["sf_tokens"], key = "@orgContextService.getActiveOrgId() + ':token'", unless = "#result == null")
     override fun getAccessToken(): SalesforceTokenResponse? {
         val url = "$loginUrl/services/oauth2/token"
         
@@ -60,9 +58,11 @@ class SalesforceAuthService(
             }
             logger.info("Successfully authenticated with Salesforce.")
             orgContextService.ensureActiveOrg(response)
+            authStatus.markSuccess()
             response
         } catch (e: Exception) {
             logger.error("Error authenticating with Salesforce: ${e.message}")
+            authStatus.markError(e.message ?: "Unknown error")
             if (e is HttpClientErrorException) {
                 logger.error("Response Body: ${e.responseBodyAsString}")
             }
