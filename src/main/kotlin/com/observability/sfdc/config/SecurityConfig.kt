@@ -29,7 +29,7 @@ class SecurityConfig(
         val objectMapper = ObjectMapper()
 
         http
-            .csrf { }
+            .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .cors { }
             .authorizeHttpRequests { auth ->
