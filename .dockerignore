@@ -3,6 +3,7 @@ target
 .idea
 *.md
 docker-compose.yml
+observability
 .env
 prometheus
 frontend
