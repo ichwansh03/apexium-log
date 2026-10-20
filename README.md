@@ -14,6 +14,7 @@ a Salesforce developer productivity tool designed to simplify Debug Log manageme
 * 📈 **Improved Developer Productivity** by automating repetitive tasks such as Trace Flag scheduling, Debug Log cleanup, and code coverage monitoring.
 * 🛡️ **Reduced Debug Log Storage Issues** through selective or bulk Debug Log cleanup, helping prevent Salesforce storage limit issues.
 * 🎯 **Built for Salesforce Developers** who need an all-in-one solution for debugging, monitoring, and tracking Apex code changes.
+* 📈 **Built-in Observability Stack** with Prometheus metrics, Grafana dashboards, and Loki log aggregation — provisioned automatically by Docker Compose.
 
 ## Architecture Design
 
@@ -70,6 +71,7 @@ graph TD
 - **Frontend**: React 19, TypeScript, Vite
 - **Database**: PostgreSQL 17, Redis (Alpine)
 - **Storage**: MinIO (S3-compatible object storage)
+- **Observability**: Prometheus, Grafana, Loki, Promtail, Alertmanager, Micrometer
 - **Build Tools**: Maven (backend), npm (frontend)
 - **Communication**: Salesforce REST API & Tooling API
 
@@ -114,18 +116,27 @@ graph TD
 
 ## Monitoring & API Documentation
 
-The project includes built-in observability and interactive documentation tools.
+The project ships a full local observability stack.
 
-### Monitoring Stack
-When running via Docker Compose, the following monitoring services are available:
+### Observability Stack
+`docker compose up` starts these alongside the app:
 
-- **Grafana**: [http://localhost:3000](http://localhost:3000) (Credentials: `admin` / `admin`)
-    - Used for visualizing JVM metrics, Spring Boot statistics, and system health.
-    - Pre-configured dashboards are recommended in [MONITORING.md](./MONITORING.md).
-- **Prometheus**: [http://localhost:9090](http://localhost:9090)
-    - Time-series database that scrapes metrics from the application.
-- **Spring Actuator**: [http://localhost:8080/actuator](http://localhost:8080/actuator)
-    - Provides raw metric data, health status, and info endpoints.
+| Service | URL | Notes |
+|---|---|---|
+| **Grafana** | [http://localhost:3000](http://localhost:3000) | `admin` / `admin` (override with `GRAFANA_ADMIN_PASSWORD`); `Apexium.log Overview` dashboard is provisioned automatically |
+| **Prometheus** | [http://localhost:9090](http://localhost:9090) | Scrapes `app:8080/actuator/prometheus` every 15s, keeps 15 days |
+| **Alertmanager** | [http://localhost:9093](http://localhost:9093) | Receives alerts from Prometheus |
+| **Loki** | [http://localhost:3100](http://localhost:3100) | Log store, 7-day retention |
+| **Promtail** | — | Ships Docker container logs (JSON) into Loki |
+| **Spring Actuator** | [http://localhost:8080/actuator](http://localhost:8080/actuator) | Health, info, metrics, Prometheus |
+
+What you get out of the box:
+
+* **Metrics** — HTTP request rate, error rate, p50/p95/p99 latency, JVM heap, GC pauses, CPU, DB pool. Every meter is tagged with `application` and `environment`.
+* **Logs** — structured JSON on stdout with a per-request `requestId`, shipped to Loki and queryable in Grafana Explore (`{service="app"} | json | level="ERROR"`).
+* **Alerts** — `ApexiumAppDown`, `ApexiumHighErrorRate`, `ApexiumHighLatencyP95`, `ApexiumHighHeapUsage` (see [`observability/prometheus/alerts.yml`](./observability/prometheus/alerts.yml)).
+
+Full setup, queries, alert rules, retention, and troubleshooting: **[docs/observability.md](./docs/observability.md)**. Legacy notes live in [MONITORING.md](./MONITORING.md).
 
 ### API Documentation (Swagger)
 Interactive API documentation is automatically generated from the Spring Boot controllers:
@@ -134,8 +145,6 @@ Interactive API documentation is automatically generated from the Spring Boot co
     - Explore and test the REST API endpoints directly from your browser.
 - **OpenAPI Spec**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
     - Raw JSON/YAML specification for the API.
-
-For detailed configuration of Prometheus and custom dashboards, refer to [MONITORING.md](./MONITORING.md).
 
 ## Contributing
 

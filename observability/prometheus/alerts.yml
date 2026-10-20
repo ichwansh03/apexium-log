@@ -1,0 +1,51 @@
+groups:
+  - name: apexium-app
+    rules:
+      - alert: ApexiumAppDown
+        expr: up{job="apexium-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "apexium-log is down"
+          description: "Prometheus has failed to scrape {{ $labels.instance }} for more than 1 minute."
+
+      - alert: ApexiumHighErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="apexium-app", status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_server_requests_seconds_count{job="apexium-app"}[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP 5xx error rate"
+          description: "More than 5% of requests returned 5xx for 5 minutes (current: {{ $value | humanizePercentage }})."
+
+      - alert: ApexiumHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(http_server_requests_seconds_bucket{job="apexium-app"}[5m]))
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 request latency"
+          description: "p95 latency above 2s for 5 minutes (current: {{ $value | humanizeDuration }})."
+
+      - alert: ApexiumHighHeapUsage
+        expr: |
+          sum(jvm_memory_used_bytes{job="apexium-app", area="heap"})
+          /
+          clamp_min(sum(jvm_memory_max_bytes{job="apexium-app", area="heap"}), 1)
+          > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM heap usage above 90%"
+          description: "Heap usage has been above 90% for 10 minutes (current: {{ $value | humanizePercentage }}). Risk of GC pressure / OOM."
