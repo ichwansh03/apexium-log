@@ -129,6 +129,9 @@ ensure_infra_defaults() {
   set_env_default "PGADMIN_EMAIL" "admin@admin.com"
   set_env_default "PGADMIN_PASSWORD" "admin"
 
+  set_env_default "GRAFANA_ADMIN_USER" "admin"
+  set_env_default "GRAFANA_ADMIN_PASSWORD" "admin"
+
   # Generate API key if missing (never use a static default)
   if ! grep -q "^APEXIUM_API_KEY=" "$ENV_FILE"; then
     if command -v openssl >/dev/null 2>&1; then
@@ -186,10 +189,16 @@ print_summary() {
   cat <<EOF
   Swagger UI:       http://localhost:8080/swagger-ui.html
   Actuator health:  http://localhost:8080/actuator/health
+  Metrics:          http://localhost:8080/actuator/prometheus
+  Grafana:          http://localhost:3000  (admin / \$GRAFANA_ADMIN_PASSWORD from .env)
+  Prometheus:       http://localhost:9090
+  Alertmanager:     http://localhost:9093
+  Loki:             http://localhost:3100
   pgAdmin:          http://localhost:5050
   MinIO console:    http://localhost:9001
 
   Frontend:  cd frontend && npm install && npm run dev
+  Observability docs: docs/observability.md
 EOF
 }
 

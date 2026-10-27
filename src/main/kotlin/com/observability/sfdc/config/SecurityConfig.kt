@@ -34,7 +34,10 @@ class SecurityConfig(
             .cors { }
             .authorizeHttpRequests { auth ->
                 auth
-                    .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                    // Public probe/scrape endpoints (health checks + Prometheus).
+                    // Everything else under /actuator stays authenticated.
+                    .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/actuator/prometheus").permitAll()
                     .requestMatchers("/actuator/**").authenticated()
                     .requestMatchers("/admin/**").authenticated()
                 if (apiKey.isNotBlank()) {
