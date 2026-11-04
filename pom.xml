@@ -107,7 +107,7 @@
 		<dependency>
 			<groupId>io.minio</groupId>
 			<artifactId>minio</artifactId>
-			<version>9.0.3</version>
+			<version>9.0.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.squareup.okhttp3</groupId>
